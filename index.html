@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RenoBros Quotation System</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        :root {
+            /* Branding Colors */
+            --primary: #0f172a;      /* Slate 900 */
+            --primary-light: #334155; /* Slate 700 */
+            --accent: #2563eb;       /* Blue 600 */
+            --bg-app: #f1f5f9;       /* Slate 100 */
+            --bg-card: #ffffff;
+            --border: #e2e8f0;       /* Slate 200 */
+            --text-main: #1e293b;    /* Slate 800 */
+            --text-muted: #64748b;   /* Slate 500 */
+        }
+
+        * { box-sizing: border-box; outline: none; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-app);
+            color: var(--text-main);
+            margin: 0;
+            padding-bottom: 100px; /* Space for fixed footer */
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* --- HEADER --- */
+        .app-header {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        .brand-logo {
+            font-weight: 800;
+            font-size: 1.25rem;
+            color: var(--primary);
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .brand-logo span { color: var(--accent); }
+
+        /* --- CONTAINER --- */
+        .main-container {
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 0 15px;
+        }
+
+        /* --- CLIENT CARD --- */
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .card-header {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+
+        .input-group label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+        }
+        .input-control {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            color: var(--text-main);
+            transition: border-color 0.2s;
+        }
+        .input-control:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+
+        /* --- SECTIONS & ITEMS --- */
+        .section-block {
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .section-title-bar {
+            background: #f8fafc;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+        .section-title-input {
+            background: transparent;
+            border: none;
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--primary);
+            width: 70%;
+        }
+        .section-total {
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .item-row {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border);
+            position: relative;
+        }
+        .item-row:last-child { border-bottom: none; }
+        
+        .item-top {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .item-desc {
+            width: 90%;
+            border: none;
+            resize: none;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            color: var(--text-main);
+            background: transparent;
+        }
+        
+        .item-metrics {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .metric-box {
+            position: relative;
+        }
+        .metric-box span {
+            position: absolute;
+            left: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .metric-input {
+            width: 80px;
+            padding: 6px 6px 6px 20px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            text-align: right;
+            font-size: 0.9rem;
+        }
+        .unit-input {
+            width: 60px;
+            padding: 6px;
+            text-align: center;
+        }
+
+        .btn-icon-danger {
+            color: #ef4444;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 5px;
+            opacity: 0.6;
+        }
+        .btn-icon-danger:hover { opacity: 1; }
+
+        .section-actions {
+            padding: 10px 20px;
+            background: #fff;
+            display: flex;
+            gap: 10px;
+        }
+        .btn-text {
+            background: none;
+            border: none;
+            color: var(--accent);
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 0;
+        }
+        .btn-text:hover { text-decoration: underline; }
+
+        /* --- ADD SECTION BTN --- */
+        .add-section-area {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .btn-dashed {
+            width: 100%;
+            border: 2px dashed var(--border);
+            background: transparent;
+            padding: 15px;
+            border-radius: 8px;
+            color: var(--text-muted);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-dashed:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(37, 99, 235, 0.05);
+        }
+
+        /* --- FIXED FOOTER --- */
+        .footer-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: var(--bg-card);
+            border-top: 1px solid var(--border);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        .grand-total-label { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; }
+        .grand-total-value { font-size: 1.5rem; font-weight: 800; color: var(--primary); }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+        .btn-primary:hover { background: var(--primary-light); }
+
+        /* --- MODAL (TEMPLATES) --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(2px);
+            z-index: 200;
+            display: none;
+            justify-content: center;
+            align-items: flex-end; /* Mobile bottom sheet style */
+        }
+        .modal-overlay.active { display: flex; }
+        
+        .modal-card {
+            background: white;
+            width: 100%;
+            max-width: 600px;
+            height: 85vh;
+            border-radius: 20px 20px 0 0;
+            display: flex;
+            flex-direction: column;
+            animation: slideUp 0.3s ease-out;
+        }
+        @media(min-width: 600px) {
+            .modal-overlay { align-items: center; }
+            .modal-card { height: 70vh; border-radius: 12px; }
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0;
+            display: flex;
+        }
+        .cat-sidebar {
+            width: 35%;
+            background: #f8fafc;
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+        }
+        .cat-btn {
+            width: 100%;
+            text-align: left;
+            padding: 15px;
+            border: none;
+            background: none;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-muted);
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .cat-btn.active { background: white; color: var(--accent); border-left: 3px solid var(--accent); }
+        
+        .item-list { width: 65%; overflow-y: auto; }
+        .template-item {
+            padding: 15px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+        .template-item:hover { background: #f1f5f9; }
+        .t-desc { font-size: 0.9rem; font-weight: 500; margin-bottom: 4px; }
+        .t-meta { font-size: 0.75rem; color: var(--text-muted); display: flex; justify-content: space-between; }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* --- PDF PRINT STYLING (HIDDEN) --- */
+        #pdf-container {
+            display: none; /* Hidden from UI */
+            width: 210mm; /* A4 width */
+            font-family: 'Inter', sans-serif;
+            color: #000;
+            background: white;
+            line-height: 1.4;
+        }
+        
+        .pdf-page {
+            padding: 15mm 15mm;
+            min-height: 297mm;
+            position: relative;
+            background: white;
+        }
+        
+        .pdf-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 15px;
+        }
+        .pdf-brand h1 { font-size: 24px; font-weight: 800; margin: 0; color: #0f172a; }
+        .pdf-brand span { color: #2563eb; }
+        .pdf-brand p { margin: 5px 0 0; font-size: 10px; color: #555; width: 250px; }
+
+        .pdf-meta-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            margin-bottom: 40px;
+            font-size: 11px;
+        }
+        .meta-col strong { display: inline-block; width: 60px; }
+        .meta-col div { margin-bottom: 4px; }
+
+        /* Summary Table */
+        .pdf-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 20px; }
+        .pdf-table th { 
+            text-align: left; 
+            border-bottom: 1px solid #000; 
+            border-top: 1px solid #000;
+            padding: 8px 5px; 
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .pdf-table td { padding: 8px 5px; border-bottom: 1px solid #eee; vertical-align: top; }
+        .pdf-table .col-right { text-align: right; }
+        .pdf-total-row td { border-top: 2px solid #000; border-bottom: 2px solid #000; font-weight: 800; font-size: 13px; padding: 10px 5px; }
+
+        /* Detailed Section */
+        .pdf-section-header {
+            background: #f1f5f9;
+            padding: 8px 5px;
+            font-weight: 700;
+            font-size: 12px;
+            border-bottom: 1px solid #000;
+            margin-top: 20px;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+
+<header class="app-header">
+    <div class="brand-logo"><i class="fas fa-layer-group"></i> RenoBros<span>Interior</span></div>
+    <div style="font-size: 0.8rem; color: var(--text-muted);">Quotation Builder</div>
+</header>
+
+<div class="main-container">
+    
+    <div class="card">
+        <div class="card-header">Project Details</div>
+        <div class="form-grid">
+            <div class="input-group">
+                <label>Client Name</label>
+                <input type="text" id="clientName" class="input-control" placeholder="e.g. Mr. Julian" value="Mr. Julian">
+            </div>
+            <div class="input-group">
+                <label>Quote Ref</label>
+                <input type="text" id="quoteRef" class="input-control" value="RB-2025-001">
+            </div>
+            <div class="input-group">
+                <label>Property Address</label>
+                <input type="text" id="address" class="input-control" placeholder="e.g. 33 Tanglin Road" value="33 Tanglin Road, #10-09">
+            </div>
+            <div class="input-group">
+                <label>Date</label>
+                <input type="date" id="quoteDate" class="input-control">
+            </div>
+        </div>
+    </div>
+
+    <div id="sections-container"></div>
+
+    <div class="add-section-area">
+        <button class="btn-dashed" onclick="addNewSection()">
+            <i class="fas fa-plus"></i> Add New Section
+        </button>
+    </div>
+
+</div>
+
+<div class="footer-bar">
+    <div>
+        <div class="grand-total-label">Grand Total</div>
+        <div class="grand-total-value" id="ui-grand-total">$0.00</div>
+    </div>
+    <button class="btn-primary" onclick="generatePDF()">
+        <i class="fas fa-file-pdf"></i> Download PDF
+    </button>
+</div>
+
+<div id="templateModal" class="modal-overlay">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3 style="margin:0; font-size:1.1rem;">Saved Items Library</h3>
+            <button onclick="closeModal()" style="border:none; background:none; font-size:1.2rem; cursor:pointer;">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="cat-sidebar" id="modalCategories">
+                </div>
+            <div class="item-list" id="modalItems">
+                </div>
+        </div>
+    </div>
+</div>
+
+<div id="pdf-container">
+    <div class="pdf-page">
+        <div class="pdf-header">
+            <div class="pdf-brand">
+                <h1>RenoBros <span style="color:#2563eb">Interior</span></h1>
+                <p>123 Design Road, Singapore 123456<br>Tel: +65 9123 4567 | Email: hello@renobros.sg</p>
+            </div>
+            <div style="text-align: right;">
+                <h2 style="margin:0; text-transform:uppercase; letter-spacing:2px; font-size:18px;">Quotation</h2>
+            </div>
+        </div>
+
+        <div class="pdf-meta-grid">
+            <div class="meta-col">
+                <div><strong>To:</strong> <span id="pdf-client"></span></div>
+                <div><strong>Site:</strong> <span id="pdf-address"></span></div>
+            </div>
+            <div class="meta-col" style="text-align: right;">
+                <div><strong>Date:</strong> <span id="pdf-date"></span></div>
+                <div><strong>Ref:</strong> <span id="pdf-ref"></span></div>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 20px; font-weight: 700; text-transform: uppercase; font-size: 12px; border-bottom: 1px solid #000;">
+            Summary of Works
+        </div>
+
+        <table class="pdf-table">
+            <thead>
+                <tr>
+                    <th style="width: 10%">Item</th>
+                    <th style="width: 60%">Description</th>
+                    <th style="width: 30%" class="col-right">Amount (SGD)</th>
+                </tr>
+            </thead>
+            <tbody id="pdf-summary-body">
+                </tbody>
+            <tfoot>
+                <tr class="pdf-total-row">
+                    <td colspan="2" class="col-right">GRAND TOTAL</td>
+                    <td class="col-right" id="pdf-grand-total"></td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div style="margin-top: 50px; font-size: 10px; color: #666;">
+            <p><strong>Terms & Conditions:</strong></p>
+            <ol style="padding-left: 15px;">
+                <li>This quotation is valid for 30 days.</li>
+                <li>Payment terms: 10% Deposit, 40% Commencement, 45% Progress, 5% Completion.</li>
+                <li>Any variation orders will be charged separately.</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="pdf-page" id="pdf-details-page">
+        <div class="pdf-header">
+             <div class="pdf-brand">
+                <h1>RenoBros <span style="color:#2563eb">Interior</span></h1>
+            </div>
+            <div style="text-align: right; font-size: 10px; color: #666;">
+                Detailed Breakdown
+            </div>
+        </div>
+
+        <table class="pdf-table">
+            <thead>
+                <tr>
+                    <th style="width: 5%">S/N</th>
+                    <th style="width: 55%">Description of Works</th>
+                    <th style="width: 10%">Unit</th>
+                    <th style="width: 15%" class="col-right">Rate</th>
+                    <th style="width: 15%" class="col-right">Amount</th>
+                </tr>
+            </thead>
+            <tbody id="pdf-details-body">
+                </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // === DATA STATE ===
+    const categories = {
+        "Preliminaries": [
+            { desc: "Project Management & Consultation", unit: "L/S", price: 3500 },
+            { desc: "Haulage & Debris Disposal", unit: "L/S", price: 1200 },
+            { desc: "Floor Protection (Corrugated Board)", unit: "L/S", price: 600 },
+            { desc: "General Cleaning upon handover", unit: "L/S", price: 450 }
+        ],
+        "Hacking / Demolition": [
+            { desc: "Hack existing floor tiles", unit: "ft²", price: 4.50 },
+            { desc: "Hack existing kitchen wall tiles", unit: "ft²", price: 3.50 },
+            { desc: "Dismantle existing kitchen cabinet", unit: "ft", price: 35 },
+            { desc: "Dismantle existing wardrobe", unit: "ft", price: 25 },
+            { desc: "Hack bathroom wall & floor tiles", unit: "L/S", price: 1200 }
+        ],
+        "Masonry / Flooring": [
+            { desc: "Supply & lay 600x600mm Homogeneous Tiles", unit: "ft²", price: 12 },
+            { desc: "Supply & lay Vinyl Flooring (5mm click)", unit: "ft²", price: 6.50 },
+            { desc: "Construct Kitchen Cabinet Base", unit: "ft", price: 35 },
+            { desc: "Construct Fridge / Washing Machine Base", unit: "No", price: 150 }
+        ],
+        "Carpentry": [
+            { desc: "Design & Fabricate Kitchen Cabinet (Btm)", unit: "ft", price: 140 },
+            { desc: "Design & Fabricate Kitchen Cabinet (Top)", unit: "ft", price: 140 },
+            { desc: "Casement Wardrobe (Internal Colour PVC)", unit: "ft", price: 260 },
+            { desc: "Sliding Wardrobe (Internal Colour PVC)", unit: "ft", price: 290 },
+            { desc: "TV Console (Suspended)", unit: "ft", price: 160 },
+            { desc: "Quartz Worktop (Selected Series)", unit: "ft", price: 120 }
+        ],
+        "Plumbing": [
+            { desc: "Install Kitchen Sink & Tap", unit: "No", price: 120 },
+            { desc: "Install Instant Heater", unit: "No", price: 80 },
+            { desc: "Install WC Bowl", unit: "No", price: 120 },
+            { desc: "Supply & Run New Stainless Steel Piping (Whole House)", unit: "L/S", price: 1800 }
+        ],
+        "Electrical": [
+            { desc: "Lighting Point (New)", unit: "No", price: 55 },
+            { desc: "13A Powerpoint (Single)", unit: "No", price: 60 },
+            { desc: "13A Powerpoint (Double)", unit: "No", price: 70 },
+            { desc: "Data Point (Cat6)", unit: "No", price: 110 },
+            { desc: "Install Ceiling Fan", unit: "No", price: 60 }
+        ]
+    };
+
+    let quoteData = [
+        { 
+            id: 1, 
+            title: "Preliminaries", 
+            items: [
+                { id: 101, desc: "Project Management & Consultation", unit: "L/S", price: 3500, qty: 1 },
+                { id: 102, desc: "Floor Protection", unit: "L/S", price: 600, qty: 1 }
+            ] 
+        },
+        { 
+            id: 2, 
+            title: "Demolition Works", 
+            items: [
+                { id: 201, desc: "Hack existing floor tiles (Living)", unit: "ft²", price: 4.50, qty: 400 }
+            ] 
+        }
+    ];
+
+    let activeSectionId = null;
+
+    // === INIT ===
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('quoteDate').valueAsDate = new Date();
+        renderBuilder();
+        setupModal();
+    });
+
+    // === RENDER LOGIC ===
+    function renderBuilder() {
+        const container = document.getElementById('sections-container');
+        container.innerHTML = '';
+        let grandTotal = 0;
+
+        quoteData.forEach((section, sIndex) => {
+            const sectionTotal = section.items.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            grandTotal += sectionTotal;
+
+            const sectionEl = document.createElement('div');
+            sectionEl.className = 'section-block';
+            sectionEl.innerHTML = `
+                <div class="section-title-bar">
+                    <div style="display:flex; align-items:center; gap:10px; flex:1;">
+                        <span style="font-weight:700; color:var(--text-muted);">${String.fromCharCode(65 + sIndex)}.</span>
+                        <input type="text" class="section-title-input" value="${section.title}" onchange="updateSectionTitle(${section.id}, this.value)">
+                    </div>
+                    <div class="section-total">${formatCurrency(sectionTotal)}</div>
+                </div>
+                <div class="items-container">
+                    ${section.items.map((item, iIndex) => `
+                        <div class="item-row">
+                            <div class="item-top">
+                                <textarea class="item-desc" rows="1" onchange="updateItem(${section.id}, ${item.id}, 'desc', this.value)">${item.desc}</textarea>
+                                <button class="btn-icon-danger" onclick="deleteItem(${section.id}, ${item.id})"><i class="fas fa-trash"></i></button>
+                            </div>
+                            <div class="item-metrics">
+                                <div class="metric-box">
+                                    <span>Qty</span>
+                                    <input type="number" class="metric-input" value="${item.qty}" onchange="updateItem(${section.id}, ${item.id}, 'qty', this.value)">
+                                </div>
+                                <div class="metric-box">
+                                    <input type="text" class="unit-input metric-input" style="padding-left:6px; width:60px; text-align:center;" value="${item.unit}" onchange="updateItem(${section.id}, ${item.id}, 'unit', this.value)">
+                                </div>
+                                <div class="metric-box">
+                                    <span>$</span>
+                                    <input type="number" class="metric-input" value="${item.price}" onchange="updateItem(${section.id}, ${item.id}, 'price', this.value)">
+                                </div>
+                                <div style="margin-left:auto; font-weight:600; font-size:0.9rem;">
+                                    ${formatCurrency(item.qty * item.price)}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="section-actions">
+                    <button class="btn-text" onclick="openLibrary(${section.id})">
+                        <i class="fas fa-book-open"></i> Library
+                    </button>
+                    <button class="btn-text" style="color:var(--text-muted)" onclick="addBlankItem(${section.id})">
+                        <i class="fas fa-plus"></i> Blank Item
+                    </button>
+                </div>
+            `;
+            container.appendChild(sectionEl);
+        });
+
+        document.getElementById('ui-grand-total').textContent = formatCurrency(grandTotal);
+    }
+
+    // === DATA MODIFIERS ===
+    function addNewSection() {
+        const newId = Date.now();
+        quoteData.push({ id: newId, title: "New Section Work", items: [] });
+        renderBuilder();
+    }
+
+    function updateSectionTitle(id, val) {
+        const s = quoteData.find(x => x.id === id);
+        if(s) s.title = val;
+    }
+
+    function updateItem(sectionId, itemId, field, val) {
+        const s = quoteData.find(x => x.id === sectionId);
+        const item = s.items.find(x => x.id === itemId);
+        if(item) {
+            item[field] = field === 'desc' || field === 'unit' ? val : parseFloat(val);
+            renderBuilder();
+        }
+    }
+
+    function deleteItem(sectionId, itemId) {
+        const s = quoteData.find(x => x.id === sectionId);
+        s.items = s.items.filter(x => x.id !== itemId);
+        renderBuilder();
+    }
+
+    function addBlankItem(sectionId) {
+        const s = quoteData.find(x => x.id === sectionId);
+        s.items.push({ id: Date.now(), desc: "Description of work...", unit: "L/S", price: 0, qty: 1 });
+        renderBuilder();
+    }
+
+    // === MODAL LOGIC ===
+    function setupModal() {
+        const catContainer = document.getElementById('modalCategories');
+        const keys = Object.keys(categories);
+        
+        // Render Categories
+        catContainer.innerHTML = keys.map((k, i) => `
+            <button class="cat-btn ${i===0?'active':''}" onclick="showCategory('${k}', this)">${k}</button>
+        `).join('');
+
+        // Show first cat by default
+        showCategory(keys[0], catContainer.firstElementChild);
+    }
+
+    function showCategory(catName, btn) {
+        // Highlight logic
+        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+        if(btn) btn.classList.add('active');
+
+        // Render items
+        const list = document.getElementById('modalItems');
+        list.innerHTML = categories[catName].map(item => `
+            <div class="template-item" onclick="selectTemplateItem('${item.desc}', '${item.unit}', ${item.price})">
+                <div class="t-desc">${item.desc}</div>
+                <div class="t-meta">
+                    <span>${item.unit}</span>
+                    <span>$${item.price}</span>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function openLibrary(sectionId) {
+        activeSectionId = sectionId;
+        document.getElementById('templateModal').classList.add('active');
+    }
+
+    function closeModal() {
+        document.getElementById('templateModal').classList.remove('active');
+        activeSectionId = null;
+    }
+
+    function selectTemplateItem(desc, unit, price) {
+        if(!activeSectionId) return;
+        const s = quoteData.find(x => x.id === activeSectionId);
+        s.items.push({
+            id: Date.now(),
+            desc: desc,
+            unit: unit,
+            price: price,
+            qty: 1
+        });
+        renderBuilder();
+        closeModal();
+    }
+
+    // === PDF GENERATION ===
+    function generatePDF() {
+        // 1. Populate Info
+        document.getElementById('pdf-client').textContent = document.getElementById('clientName').value;
+        document.getElementById('pdf-address').textContent = document.getElementById('address').value;
+        document.getElementById('pdf-date').textContent = document.getElementById('quoteDate').value;
+        document.getElementById('pdf-ref').textContent = document.getElementById('quoteRef').value;
+
+        // 2. Populate Summary Table (Page 1)
+        const summaryBody = document.getElementById('pdf-summary-body');
+        summaryBody.innerHTML = '';
+        let grandTotal = 0;
+
+        quoteData.forEach((section, index) => {
+            const sTotal = section.items.reduce((a, b) => a + (b.qty * b.price), 0);
+            grandTotal += sTotal;
+            summaryBody.innerHTML += `
+                <tr>
+                    <td>${String.fromCharCode(65 + index)}</td>
+                    <td>${section.title}</td>
+                    <td class="col-right">${formatCurrency(sTotal)}</td>
+                </tr>
+            `;
+        });
+        document.getElementById('pdf-grand-total').textContent = formatCurrency(grandTotal);
+
+        // 3. Populate Details Table (Page 2)
+        const detailsBody = document.getElementById('pdf-details-body');
+        detailsBody.innerHTML = '';
+        let rowCounter = 1;
+
+        quoteData.forEach((section, sIndex) => {
+            // Section Header Row
+            detailsBody.innerHTML += `
+                <tr>
+                    <td colspan="5" class="pdf-section-header">
+                        ${String.fromCharCode(65 + sIndex)}. ${section.title}
+                    </td>
+                </tr>
+            `;
+            
+            // Item Rows
+            section.items.forEach(item => {
+                detailsBody.innerHTML += `
+                    <tr>
+                        <td>${rowCounter++}</td>
+                        <td style="white-space: pre-wrap;">${item.desc}</td>
+                        <td>${item.qty} ${item.unit}</td>
+                        <td class="col-right">${formatCurrency(item.price)}</td>
+                        <td class="col-right">${formatCurrency(item.qty * item.price)}</td>
+                    </tr>
+                `;
+            });
+        });
+
+        // 4. Generate
+        const element = document.getElementById('pdf-container');
+        element.style.display = 'block'; // Reveal for capture
+
+        const opt = {
+            margin:       0,
+            filename:     `Quotation_${document.getElementById('quoteRef').value}.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opt).from(element).save().then(() => {
+            element.style.display = 'none'; // Hide after
+        });
+    }
+
+    function formatCurrency(val) {
+        return '$' + Number(val).toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+</script>
+
+</body>
+</html>
