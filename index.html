@@ -574,7 +574,7 @@
         return '$' + Number(val).toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
-    // === PDF GENERATION (COVER PAGE + DETAILS) ===
+    // === PDF GENERATION (PROFESSIONAL EDITION) ===
     function generatePDF() {
         const btn = document.getElementById('btn-generate');
         const originalText = btn.innerHTML;
@@ -586,12 +586,12 @@
         const address = document.getElementById('address').value;
         const quoteDate = document.getElementById('quoteDate').value;
         const quoteRef = document.getElementById('quoteRef').value;
-        const projectTitle = document.getElementById('projectTitle').value; // New Field
+        const projectTitle = document.getElementById('projectTitle').value;
         let grandTotal = 0;
 
         // 2. Build Cover Page Summary Table
         const summaryBody = [];
-        // Header Row (Hidden borders for cleaner look or standard)
+        // Header
         summaryBody.push([
             {text: 'Item', style: 'tableHeader', border: [false, false, false, true]}, 
             {text: 'Description', style: 'tableHeader', border: [false, false, false, true]}, 
@@ -621,9 +621,11 @@
 
         let sn = 1;
         quoteData.forEach((section, sIndex) => {
+            const sectionTotal = section.items.reduce((sum, item) => sum + (item.qty * item.price), 0);
+            
             // Section Header
             detailsBody.push([
-                {text: `${String.fromCharCode(65 + sIndex)}. ${section.title}`, colSpan: 5, style: 'sectionHeader', fillColor: '#e2e8f0'},
+                {text: `${String.fromCharCode(65 + sIndex)}. ${section.title}`, colSpan: 5, style: 'sectionHeader', fillColor: '#e2e8f0', margin: [0, 10, 0, 5]},
                 {},{},{},{}
             ]);
 
@@ -637,12 +639,34 @@
                     {text: formatCurrency(item.qty * item.price), alignment: 'right', style: 'tableCell'}
                 ]);
             });
+
+            // Section Subtotal Row
+            detailsBody.push([
+                {text: '', border: [false, false, false, false]},
+                {text: `Total for ${section.title}`, bold: true, alignment: 'right', colSpan: 3, style: 'tableCell', border: [false, false, false, false]},
+                {},{},
+                {text: formatCurrency(sectionTotal), bold: true, alignment: 'right', style: 'tableCell', border: [false, true, false, false]} // Top border only
+            ]);
+            
+            // Spacer row
+            detailsBody.push([
+                {text: ' ', colSpan: 5, border: [false, false, false, false], fontSize: 5},{},{},{},{}
+            ]);
         });
 
-        // 4. Define Document Definition
+        // 4. Document Definition
         const docDefinition = {
             pageSize: 'A4',
             pageMargins: [40, 40, 40, 60],
+            footer: function(currentPage, pageCount) {
+                return {
+                    text: `Page ${currentPage} of ${pageCount}`,
+                    alignment: 'right',
+                    fontSize: 8,
+                    color: '#94a3b8',
+                    margin: [0, 0, 40, 0]
+                };
+            },
             content: [
                 // === PAGE 1: COVER SHEET ===
                 {
@@ -656,78 +680,70 @@
                         {
                             stack: [
                                 {text: 'QUOTATION', fontSize: 14, bold: true, letterSpacing: 2, alignment: 'right'},
-                                {text: quoteDate, fontSize: 10, alignment: 'right', margin: [0, 5, 0, 0]}
+                                {text: quoteDate, fontSize: 10, alignment: 'right', margin: [0, 5, 0, 0]},
+                                {text: 'Ref: ' + quoteRef, fontSize: 10, alignment: 'right', margin: [0, 2, 0, 0]}
                             ]
                         }
                     ],
-                    margin: [0, 0, 0, 60]
+                    margin: [0, 0, 0, 40]
                 },
                 
-                // Project Title (User Input)
-                {
-                    text: projectTitle.toUpperCase(),
-                    fontSize: 16,
-                    bold: true,
-                    color: '#0f172a',
-                    margin: [0, 0, 0, 30]
-                },
+                { text: projectTitle.toUpperCase(), fontSize: 14, bold: true, color: '#0f172a', margin: [0, 0, 0, 25] },
 
-                // Client Info Block
+                // Client Info Box
+                {
+                    canvas: [{ type: 'rect', x: 0, y: 0, w: 515, h: 65, r: 4, lineColor: '#e2e8f0' }],
+                    absolutePosition: {x: 40, y: 165}
+                },
                 {
                     columns: [
                         { width: '15%', text: 'ATTN TO:', bold: true, fontSize: 10, color: '#64748b' },
                         { width: '85%', text: clientName.toUpperCase(), bold: true, fontSize: 11 }
                     ],
-                    margin: [0, 0, 0, 5]
+                    margin: [10, 10, 0, 5]
                 },
                 {
                     columns: [
                         { width: '15%', text: 'SITE:', bold: true, fontSize: 10, color: '#64748b' },
                         { width: '85%', text: address.toUpperCase(), bold: true, fontSize: 11 }
                     ],
-                    margin: [0, 0, 0, 40]
+                    margin: [10, 0, 0, 30]
                 },
 
-                // Summary Table Title
-                { text: 'SUMMARY OF COSTS', style: 'subHeader', margin: [0,0,0,10] },
-
-                // The Summary Table (Clean Layout)
+                // Summary Table
+                { text: 'SUMMARY OF COSTS', style: 'subHeader', margin: [0,20,0,10] },
                 {
-                    table: {
-                        widths: ['10%', '60%', '30%'],
-                        body: summaryBody
-                    },
+                    table: { widths: ['10%', '60%', '30%'], body: summaryBody },
                     layout: {
-                        hLineWidth: function(i, node) { return (i === 1) ? 2 : 0; }, // Line under header only
+                        hLineWidth: function(i) { return (i === 1) ? 1 : 0; },
                         vLineWidth: function(i) { return 0; },
-                        paddingTop: function(i) { return 10; },
-                        paddingBottom: function(i) { return 10; }
-                    },
-                    margin: [0, 0, 0, 10]
+                        paddingTop: function(i) { return 8; },
+                        paddingBottom: function(i) { return 8; }
+                    }
                 },
 
-                // Grand Total (Big & Styled)
+                // Grand Total
                 {
                     columns: [
                         { width: '*', text: '' },
                         {
                             width: 'auto',
                             table: {
-                                widths: [150, 120],
+                                widths: [120, 120],
                                 body: [
                                     [
-                                        {text: 'GRAND TOTAL', bold: true, alignment: 'right', fontSize: 12, margin:[0,5,0,5]}, 
-                                        {text: formatCurrency(grandTotal), bold: true, alignment: 'right', fontSize: 14, color: '#2563eb', margin:[0,5,0,5]}
+                                        {text: 'GRAND TOTAL', bold: true, alignment: 'right', fontSize: 11, margin:[0,5,0,5]}, 
+                                        {text: formatCurrency(grandTotal), bold: true, alignment: 'right', fontSize: 13, color: '#0f172a', margin:[0,5,0,5]}
                                     ]
                                 ]
                             },
                             layout: {
-                                hLineWidth: function(i, node) { return (i === 0 || i === node.table.body.length) ? 2 : 0; },
+                                hLineWidth: function(i, node) { return (i === 0 || i === node.table.body.length) ? 1 : 0; },
                                 vLineWidth: function(i) { return 0; }
                             }
                         }
                     ],
-                    margin: [0, 10, 0, 0]
+                    margin: [0, 20, 0, 0]
                 },
 
                 // === PAGE BREAK ===
@@ -735,25 +751,10 @@
 
                 // === PAGE 2+: DETAILED BREAKDOWN ===
                 {
-                    columns: [
-                        {
-                            text: [
-                                {text: 'RenoBros ', bold: true, fontSize: 14, color: '#0f172a'},
-                                {text: 'Interior', bold: true, fontSize: 14, color: '#2563eb'}
-                            ]
-                        },
-                        {
-                            text: 'Detailed Breakdown - ' + quoteRef, 
-                            alignment: 'right', 
-                            fontSize: 10, 
-                            color: '#64748b',
-                            margin: [0, 5, 0, 0]
-                        }
-                    ],
-                    margin: [0, 0, 0, 20]
+                    text: 'DETAILED BREAKDOWN', 
+                    style: 'subHeader', 
+                    margin: [0, 0, 0, 15] 
                 },
-
-                // Details Table
                 {
                     table: {
                         widths: ['6%', '54%', '12%', '14%', '14%'],
@@ -761,38 +762,57 @@
                         body: detailsBody
                     },
                     layout: {
-                        hLineWidth: function (i, node) { return (i === 0 || i === node.table.body.length) ? 1 : 1; },
+                        hLineWidth: function (i, node) { return (i === 0 || i === 1) ? 1 : 0; }, // Header lines only
                         vLineWidth: function (i, node) { return 0; },
-                        hLineColor: function (i, node) { return '#e2e8f0'; },
-                        paddingTop: function(i) { return 8; },
-                        paddingBottom: function(i) { return 8; }
+                        hLineColor: function (i, node) { return '#cbd5e1'; },
+                        paddingTop: function(i) { return 6; },
+                        paddingBottom: function(i) { return 6; }
                     }
                 },
 
-                // Terms & Conditions (At the end)
+                // === LAST PAGE: SIGNATURE & TERMS ===
+                { text: '', pageBreak: 'before' }, // Force new page for Terms/Sig if you prefer, or remove to flow naturally
+                
+                { text: 'TERMS & CONDITIONS', style: 'subHeader', margin: [0, 0, 0, 10] },
                 {
-                    text: [
-                        {text: '\nTERMS & CONDITIONS\n', bold: true, fontSize: 10, decoration: 'underline'},
-                        '1. This quotation is valid for 30 days from the date of issue.\n',
-                        '2. Payment terms: 10% Deposit, 40% Commencement, 45% Progress, 5% Completion.\n',
-                        '3. All cheques should be crossed and made payable to "RenoBros Interior Pte Ltd".\n',
-                        '4. Any variation orders will be charged separately.'
+                    ol: [
+                        'This quotation is valid for 30 days from the date of issue.',
+                        'Payment terms: 10% Deposit, 40% Commencement, 45% Progress, 5% Completion.',
+                        'All cheques should be crossed and made payable to "RenoBros Interior Pte Ltd".',
+                        'Any variation orders will be charged separately and must be approved in writing.',
+                        'Work schedule to be agreed upon confirmation of order.'
                     ],
-                    fontSize: 8,
-                    color: '#64748b',
-                    margin: [0, 40, 0, 0]
+                    fontSize: 9,
+                    color: '#475569',
+                    margin: [0, 0, 0, 40]
+                },
+
+                // Signature Block
+                {
+                    table: {
+                        widths: ['*', '*'],
+                        body: [
+                            [
+                                { text: 'CONFIRMED & ACCEPTED BY:', fontSize: 10, bold: true, color: '#0f172a' },
+                                { text: 'FOR RENOBROS INTERIOR:', fontSize: 10, bold: true, color: '#0f172a', alignment: 'right' }
+                            ],
+                            [
+                                { text: '\n\n\n_____________________________\nClient Signature / Date', fontSize: 9, color: '#94a3b8' },
+                                { text: '\n\n\n_____________________________\nAuthorised Signature', fontSize: 9, color: '#94a3b8', alignment: 'right' }
+                            ]
+                        ]
+                    },
+                    layout: 'noBorders'
                 }
             ],
             styles: {
-                tableHeader: { bold: true, fontSize: 10, color: '#1e293b', margin: [0, 4, 0, 4] },
-                tableCell: { fontSize: 10, margin: [0, 4, 0, 4] },
-                tableCellSummary: { fontSize: 11, margin: [0, 4, 0, 4], bold: true, color: '#334155' },
-                sectionHeader: { bold: true, fontSize: 11, color: '#0f172a', margin: [0, 6, 0, 6] },
-                subHeader: { bold: true, fontSize: 11, color: '#94a3b8', letterSpacing: 1 }
+                tableHeader: { bold: true, fontSize: 9, color: '#1e293b', margin: [0, 4, 0, 4] },
+                tableCell: { fontSize: 9, margin: [0, 4, 0, 4] },
+                tableCellSummary: { fontSize: 10, margin: [0, 4, 0, 4], bold: true, color: '#334155' },
+                sectionHeader: { bold: true, fontSize: 10, color: '#0f172a' },
+                subHeader: { bold: true, fontSize: 11, color: '#64748b', letterSpacing: 1, decoration: 'underline' }
             },
-            defaultStyle: {
-                font: 'Roboto'
-            }
+            defaultStyle: { font: 'Roboto' }
         };
 
         // 5. Generate
