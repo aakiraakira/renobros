@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Renobros System Protocol</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #0f172a;
+            --accent: #2563eb;
+            --bg: #f8fafc;
+            --text: #334155;
+            --border: #e2e8f0;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        h1 { font-weight: 800; color: var(--primary); margin-bottom: 5px; }
+        h2 { font-weight: 700; color: var(--primary); margin-top: 40px; border-bottom: 2px solid var(--border); padding-bottom: 10px; }
+        h3 { font-weight: 600; color: var(--accent); margin-top: 25px; }
+        
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        
+        .step-list { counter-reset: step; list-style: none; padding: 0; }
+        .step-list li { position: relative; padding-left: 40px; margin-bottom: 15px; }
+        .step-list li::before {
+            counter-increment: step;
+            content: counter(step);
+            position: absolute;
+            left: 0; top: 0;
+            background: var(--accent);
+            color: white;
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            text-align: center;
+            font-size: 0.85rem;
+            font-weight: bold;
+            line-height: 28px;
+        }
+
+        .highlight-box {
+            background: #eff6ff;
+            border-left: 4px solid var(--accent);
+            padding: 15px;
+            border-radius: 4px;
+            font-size: 0.95rem;
+            margin: 15px 0;
+        }
+        
+        .icon-label { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--primary); }
+        .mobile-only { color: #d97706; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-left: 8px; }
+
+        code { background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; color: #be185d; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div style="text-align:center; margin-bottom:40px;">
+        <h1>Renobros Interior</h1>
+        <div style="color: var(--accent); font-weight: 600;">System Operating Protocol v2.0</div>
+    </div>
+
+    <div class="card">
+        <div class="icon-label"><i class="fas fa-power-off"></i> 1. Getting Started</div>
+        <p>This system is a cloud-based web application. It runs in any modern browser (Chrome/Safari) on desktops, tablets, and mobile phones.</p>
+        <div class="highlight-box">
+            <strong>Access:</strong> Simply open the <code>index.html</code> file. The system connects to the central database automatically.
+        </div>
+        <h3>Logging In</h3>
+        <ul class="step-list">
+            <li>Open the application.</li>
+            <li>Enter your company email and password.</li>
+            <li>If you are a new staff member, toggle to <b>"Create Account"</b> to register your ID first.</li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <div class="icon-label"><i class="fas fa-file-invoice"></i> 2. Creating Quotations & Invoices</div>
+        <p>This is the primary function of the app. All documents save automatically as you type.</p>
+
+        <h3>Step A: Setup</h3>
+        <ul class="step-list">
+            <li>Click <b>New Invoice</b> on the dashboard.</li>
+            <li><b>Doc Type:</b> Select "Quotation" for new leads or "Invoice" for billing.</li>
+            <li><b>Client:</b> Click the <i class="fas fa-user"></i> icon to pick an existing customer, or type a new name manually.</li>
+        </ul>
+
+        <h3>Step B: Building the Scope</h3>
+        <ul class="step-list">
+            <li><b>Add Sections:</b> Click "Add New Section" to create categories (e.g., "Kitchen", "Master Bedroom").</li>
+            <li><b>Add Items:</b> Inside a section, you have two choices:
+                <br><em>Option 1:</em> Click <b>Library</b> to insert pre-set items (Fastest).
+                <br><em>Option 2:</em> Click <b>Blank Item</b> to type a custom description.
+            </li>
+            <li><b>Pricing:</b> Enter Qty, Unit, and Price. The totals calculate automatically.</li>
+        </ul>
+
+        <h3>Step C: Revisions (VOs)</h3>
+        <div class="highlight-box">
+            If a client changes their mind after the contract is signed, do <strong>not</strong> overwrite the original.
+        </div>
+        <ul class="step-list">
+            <li>Scroll to the "Payment & Revisions" card.</li>
+            <li>Type a note (e.g., "Added electrical points").</li>
+            <li>Click <b>Create VO Snapshot</b>. This saves a copy of the current state before you make changes.</li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <div class="icon-label"><i class="fas fa-mobile-alt"></i> 3. Mobile Usage Guide</div>
+        <p>The system transforms when opened on a phone to look like a native app.</p>
+        
+        <h3>Key Differences on Phone</h3>
+        <ul>
+            <li><b>Navigation:</b> Use the "Hamburger" menu <i class="fas fa-bars"></i> at the top right to switch views.</li>
+            <li><b>Tables:</b> Invoices and Customers appear as "Cards" instead of spreadsheet rows.</li>
+            <li><b>Editing:</b> Item rows stack vertically. The "Total Price" for an item appears at the bottom right of the card.</li>
+        </ul>
+        <div class="highlight-box">
+            <strong>Tip:</strong> Tap the "Actions" area on an invoice card to quickly "Quick Download PDF" via WhatsApp or Email.
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="icon-label"><i class="fas fa-database"></i> 4. Data Management</div>
+        
+        <h3>Library Management</h3>
+        <p>The library stores your standard rates to speed up quoting.</p>
+        <ul class="step-list">
+            <li>Go to the <b>Library</b> tab.</li>
+            <li>Click <b>New Item</b> to add a standard service.</li>
+            <li><strong>Bulk Edit:</strong> Use the "Manage Mode" inside the invoice editor to quickly delete old items or add categories on the fly.</li>
+        </ul>
+
+        <h3>Customer Database</h3>
+        <p>Customers are saved automatically when you import them via Excel or create them manually.</p>
+        <ul class="step-list">
+            <li><strong>Excel Import:</strong> In the Customers tab, upload an Excel file with columns: <code>Name</code>, <code>Phone</code>, <code>Email</code>, <code>Address</code>.</li>
+            <li><strong>Tracking:</strong> Click the <i class="fas fa-eye"></i> icon on any customer to see their total outstanding balance across all jobs.</li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <div class="icon-label"><i class="fas fa-lock"></i> 5. Admin Protocols</div>
+        
+        <h3>Profit Tracking (Owner Only)</h3>
+        <p>This feature is only visible to the primary admin account.</p>
+        <ul>
+            <li>Open an Invoice/Quotation.</li>
+            <li>Scroll to the bottom footer bar.</li>
+            <li>Enter your <b>Internal Cost</b> in the small box next to the Grand Total.</li>
+            <li>The system will calculate the <b>Net Profit</b> dynamically.</li>
+        </ul>
+
+        <h3>PDF Generation</h3>
+        <p>The PDF generator creates a formal contract.</p>
+        <ul>
+            <li>It automatically includes the "Terms & Conditions" set in the <b>Settings</b> tab.</li>
+            <li>It generates a signature page automatically.</li>
+        </ul>
+    </div>
+
+</div>
+
+</body>
+</html>
