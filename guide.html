@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Renobros System Protocol</title>
+    <title>Renobros System User Guide</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -13,6 +13,7 @@
             --bg: #f8fafc;
             --text: #334155;
             --border: #e2e8f0;
+            --success: #10b981;
         }
         body {
             font-family: 'Inter', sans-serif;
@@ -27,9 +28,16 @@
             margin: 0 auto;
             padding: 40px 20px;
         }
-        h1 { font-weight: 800; color: var(--primary); margin-bottom: 5px; }
-        h2 { font-weight: 700; color: var(--primary); margin-top: 40px; border-bottom: 2px solid var(--border); padding-bottom: 10px; }
-        h3 { font-weight: 600; color: var(--accent); margin-top: 25px; }
+        h1 { font-weight: 800; color: var(--primary); margin-bottom: 5px; font-size: 2rem; }
+        h2 { 
+            font-weight: 700; 
+            color: var(--primary); 
+            margin-top: 40px; 
+            border-bottom: 2px solid var(--border); 
+            padding-bottom: 10px; 
+            font-size: 1.4rem;
+        }
+        h3 { font-weight: 600; color: var(--accent); margin-top: 25px; margin-bottom: 10px; }
         
         .card {
             background: white;
@@ -40,7 +48,7 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
         
-        .step-list { counter-reset: step; list-style: none; padding: 0; }
+        .step-list { counter-reset: step; list-style: none; padding: 0; margin: 0; }
         .step-list li { position: relative; padding-left: 40px; margin-bottom: 15px; }
         .step-list li::before {
             counter-increment: step;
@@ -49,12 +57,12 @@
             left: 0; top: 0;
             background: var(--accent);
             color: white;
-            width: 28px; height: 28px;
+            width: 24px; height: 24px;
             border-radius: 50%;
             text-align: center;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             font-weight: bold;
-            line-height: 28px;
+            line-height: 24px;
         }
 
         .highlight-box {
@@ -66,10 +74,32 @@
             margin: 15px 0;
         }
         
-        .icon-label { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--primary); }
-        .mobile-only { color: #d97706; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-left: 8px; }
+        .alert-box {
+            background: #fff1f2;
+            border-left: 4px solid #ef4444;
+            padding: 15px;
+            border-radius: 4px;
+            font-size: 0.95rem;
+            margin: 15px 0;
+            color: #881337;
+        }
 
-        code { background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; color: #be185d; }
+        .icon-label { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: var(--primary); font-size: 1.1rem; margin-bottom: 15px; }
+        code { background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; color: #be185d; font-weight: 600; }
+        
+        /* Mobile View Simulation */
+        .mobile-tip {
+            display: inline-block;
+            background: #f0fdf4;
+            color: #166534;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            border: 1px solid #bbf7d0;
+            margin-bottom: 5px;
+        }
     </style>
 </head>
 <body>
@@ -77,107 +107,96 @@
 <div class="container">
     <div style="text-align:center; margin-bottom:40px;">
         <h1>Renobros Interior</h1>
-        <div style="color: var(--accent); font-weight: 600;">System Operating Protocol v2.0</div>
+        <div style="color: var(--accent); font-weight: 600; letter-spacing: 0.05em;">OPERATING MANUAL</div>
     </div>
 
     <div class="card">
-        <div class="icon-label"><i class="fas fa-power-off"></i> 1. Getting Started</div>
-        <p>This system is a cloud-based web application. It runs in any modern browser (Chrome/Safari) on desktops, tablets, and mobile phones.</p>
-        <div class="highlight-box">
-            <strong>Access:</strong> Simply open the <code>index.html</code> file. The system connects to the central database automatically.
-        </div>
-        <h3>Logging In</h3>
+        <div class="icon-label"><i class="fas fa-file-invoice-dollar"></i> 1. The Dashboard (Invoices)</div>
+        <p>The dashboard is your home screen. It lists all active Quotes and Invoices sorted by date.</p>
+        
+        <h3>Searching & Filtering</h3>
+        <p>Use the top search bar to find documents by <b>Client Name</b> or <b>Ref Number</b> (e.g., "RB-2025").</p>
+
+        <h3>Action Buttons</h3>
         <ul class="step-list">
-            <li>Open the application.</li>
-            <li>Enter your company email and password.</li>
-            <li>If you are a new staff member, toggle to <b>"Create Account"</b> to register your ID first.</li>
+            <li><b>Edit <i class="fas fa-edit"></i>:</b> Opens the Editor to make changes.</li>
+            <li><b>PDF <i class="fas fa-file-pdf"></i>:</b> Instantly downloads the formal PDF contract.</li>
+            <li><b>Copy <i class="fas fa-copy"></i>:</b> Duplicates an invoice (useful for creating "Option B" quotes).</li>
+            <li><b>Delete <i class="fas fa-trash"></i>:</b> Permanently removes the document.</li>
         </ul>
     </div>
 
     <div class="card">
-        <div class="icon-label"><i class="fas fa-file-invoice"></i> 2. Creating Quotations & Invoices</div>
-        <p>This is the primary function of the app. All documents save automatically as you type.</p>
+        <div class="icon-label"><i class="fas fa-pen-nib"></i> 2. Creating a Quotation</div>
+        <p>This is where you build the contract. Data saves automatically every time you stop typing.</p>
 
-        <h3>Step A: Setup</h3>
+        <h3>Step A: Project Details</h3>
         <ul class="step-list">
-            <li>Click <b>New Invoice</b> on the dashboard.</li>
-            <li><b>Doc Type:</b> Select "Quotation" for new leads or "Invoice" for billing.</li>
-            <li><b>Client:</b> Click the <i class="fas fa-user"></i> icon to pick an existing customer, or type a new name manually.</li>
+            <li><b>Select Client:</b> Type a name manually OR click the <i class="fas fa-user"></i> icon to pick from your saved Customer list.</li>
+            <li><b>Doc Type:</b> Switch between "Quotation" (Draft) and "Invoice" (Final Bill).</li>
         </ul>
 
-        <h3>Step B: Building the Scope</h3>
-        <ul class="step-list">
-            <li><b>Add Sections:</b> Click "Add New Section" to create categories (e.g., "Kitchen", "Master Bedroom").</li>
-            <li><b>Add Items:</b> Inside a section, you have two choices:
-                <br><em>Option 1:</em> Click <b>Library</b> to insert pre-set items (Fastest).
-                <br><em>Option 2:</em> Click <b>Blank Item</b> to type a custom description.
-            </li>
-            <li><b>Pricing:</b> Enter Qty, Unit, and Price. The totals calculate automatically.</li>
-        </ul>
-
-        <h3>Step C: Revisions (VOs)</h3>
+        <h3>Step B: Adding Work Items</h3>
+        <p>You build the quote by adding <b>Sections</b> (e.g., "Kitchen", "Master Bed") and then adding items inside them.</p>
         <div class="highlight-box">
-            If a client changes their mind after the contract is signed, do <strong>not</strong> overwrite the original.
+            <strong>Pro Tip:</strong> Click the <b>"Library"</b> button inside a section to instantly insert standard items (like "Supply & Lay Tiles") with their pre-set prices.
         </div>
-        <ul class="step-list">
-            <li>Scroll to the "Payment & Revisions" card.</li>
+        <p>If you need a custom item, click <b>"Blank Item"</b> and type the description manually.</p>
+
+        <h3>Step C: VO (Variation Orders)</h3>
+        <div class="alert-box">
+            <strong>Crucial:</strong> If a client changes the scope AFTER signing, do not delete the original items.
+        </div>
+        <ol style="margin-top:10px; padding-left:20px;">
+            <li>Scroll to the bottom <b>"Payment & Revisions"</b> box.</li>
             <li>Type a note (e.g., "Added electrical points").</li>
-            <li>Click <b>Create VO Snapshot</b>. This saves a copy of the current state before you make changes.</li>
+            <li>Click <b>Create VO Snapshot</b>. This saves a hidden copy of the <i>current</i> state before you make changes, protecting your original contract history.</li>
+        </ol>
+    </div>
+
+    <div class="card">
+        <div class="icon-label"><i class="fas fa-mobile-alt"></i> 3. Using on Mobile Phone</div>
+        <p>The system changes its layout when used on a phone to act like an app.</p>
+        
+        <div class="mobile-tip">MOBILE MODE</div>
+        <h3>Key Differences</h3>
+        <ul>
+            <li><b>Navigation:</b> Use the Menu Button <i class="fas fa-bars"></i> at the top right to switch between Invoices, Customers, and Library.</li>
+            <li><b>Tables:</b> Invoices appear as "Cards" instead of rows. Tap a card to see actions.</li>
+            <li><b>Editor:</b> The "Qty/Unit/Price" inputs stack vertically to make them easier to tap with your thumb.</li>
         </ul>
     </div>
 
     <div class="card">
-        <div class="icon-label"><i class="fas fa-mobile-alt"></i> 3. Mobile Usage Guide</div>
-        <p>The system transforms when opened on a phone to look like a native app.</p>
+        <div class="icon-label"><i class="fas fa-database"></i> 4. Library & Customers</div>
         
-        <h3>Key Differences on Phone</h3>
+        <h3>The Library</h3>
+        <p>This saves you from typing the same thing twice. Go to the <b>Library</b> tab to manage standard rates.</p>
         <ul>
-            <li><b>Navigation:</b> Use the "Hamburger" menu <i class="fas fa-bars"></i> at the top right to switch views.</li>
-            <li><b>Tables:</b> Invoices and Customers appear as "Cards" instead of spreadsheet rows.</li>
-            <li><b>Editing:</b> Item rows stack vertically. The "Total Price" for an item appears at the bottom right of the card.</li>
+            <li><b>Manage Mode:</b> Inside the editor, opening the library allows you to toggle "Manage Mode" to add/delete items on the fly without leaving the invoice.</li>
         </ul>
+
+        <h3>Customers</h3>
+        <p>You can upload an Excel file of customers to bulk-import them.</p>
         <div class="highlight-box">
-            <strong>Tip:</strong> Tap the "Actions" area on an invoice card to quickly "Quick Download PDF" via WhatsApp or Email.
+            <strong>Tracking Balance:</strong> Click the <i class="fas fa-eye"></i> icon next to a customer to see every invoice they have ever received and their total outstanding payment.
         </div>
     </div>
 
     <div class="card">
-        <div class="icon-label"><i class="fas fa-database"></i> 4. Data Management</div>
-        
-        <h3>Library Management</h3>
-        <p>The library stores your standard rates to speed up quoting.</p>
+        <div class="icon-label"><i class="fas fa-lock"></i> 5. Owner Features</div>
+        <p>These features are hidden or restricted.</p>
+
+        <h3>Profit Calculation</h3>
+        <p>Open any invoice and scroll to the bottom black footer bar.</p>
         <ul class="step-list">
-            <li>Go to the <b>Library</b> tab.</li>
-            <li>Click <b>New Item</b> to add a standard service.</li>
-            <li><strong>Bulk Edit:</strong> Use the "Manage Mode" inside the invoice editor to quickly delete old items or add categories on the fly.</li>
+            <li>Locate the small <b>"Internal Cost"</b> box next to the Grand Total.</li>
+            <li>Enter your actual cost for the job.</li>
+            <li>The system will display your <b>Net Profit</b> immediately below it. (This is never shown on the PDF).</li>
         </ul>
 
-        <h3>Customer Database</h3>
-        <p>Customers are saved automatically when you import them via Excel or create them manually.</p>
-        <ul class="step-list">
-            <li><strong>Excel Import:</strong> In the Customers tab, upload an Excel file with columns: <code>Name</code>, <code>Phone</code>, <code>Email</code>, <code>Address</code>.</li>
-            <li><strong>Tracking:</strong> Click the <i class="fas fa-eye"></i> icon on any customer to see their total outstanding balance across all jobs.</li>
-        </ul>
-    </div>
-
-    <div class="card">
-        <div class="icon-label"><i class="fas fa-lock"></i> 5. Admin Protocols</div>
-        
-        <h3>Profit Tracking (Owner Only)</h3>
-        <p>This feature is only visible to the primary admin account.</p>
-        <ul>
-            <li>Open an Invoice/Quotation.</li>
-            <li>Scroll to the bottom footer bar.</li>
-            <li>Enter your <b>Internal Cost</b> in the small box next to the Grand Total.</li>
-            <li>The system will calculate the <b>Net Profit</b> dynamically.</li>
-        </ul>
-
-        <h3>PDF Generation</h3>
-        <p>The PDF generator creates a formal contract.</p>
-        <ul>
-            <li>It automatically includes the "Terms & Conditions" set in the <b>Settings</b> tab.</li>
-            <li>It generates a signature page automatically.</li>
-        </ul>
+        <h3>Default Terms</h3>
+        <p>Go to the <b>Settings</b> tab to change the default "Terms & Conditions" text that appears on every new invoice.</p>
     </div>
 
 </div>
