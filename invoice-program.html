@@ -847,7 +847,8 @@
       <div class="form-grid" style="grid-template-columns:1fr 1fr;">
         <div class="input-group" style="grid-column: span 2;">
           <label>Category</label>
-          <input type="text" id="lib-category" class="input-control" placeholder="e.g., Carpentry">
+          <input type="text" id="lib-category" class="input-control" list="category-list" placeholder="Select or type category..." autocomplete="off">
+<datalist id="category-list"></datalist>
         </div>
         <div class="input-group" style="grid-column: span 2;">
           <label>Description</label>
@@ -1342,12 +1343,20 @@
         const uid = dataUid();
         if (!uid) return;
         if (!confirm('Delete this customer?')) return;
+
+        // Optimistic Update
+        const prev = [...customers];
+        customers = customers.filter(c => c.id !== id);
+        renderCustomerList();
+
         try {
             await deleteDoc(doc(db, `users/${uid}/customers`, id));
             showToast('Deleted');
         } catch (e) {
             console.error(e);
-            showToast('Delete failed (check permissions)');
+            customers = prev;
+            renderCustomerList();
+            showToast('Delete failed');
         }
     };
 
@@ -1479,6 +1488,18 @@ const renderCustomerInvoices = () => {
         const item = id ? libraryItems.find(x => x.id === id) : null;
         document.getElementById('lib-edit-title').innerText = id ? 'Edit Library Item' : 'New Library Item';
 
+        // --- NEW CODE START: Populate Categories Dropdown ---
+        // 1. Get all unique categories from existing items
+        const existingCats = [...new Set(libraryItems.map(i => i.category || 'General'))];
+        // 2. Sort them alphabetically
+        existingCats.sort((a, b) => a.localeCompare(b));
+        
+        // 3. Fill the datalist
+        const dataList = document.getElementById('category-list');
+        dataList.innerHTML = existingCats.map(c => `<option value="${c}">`).join('');
+        // --- NEW CODE END ---
+
+        // Set values
         document.getElementById('lib-category').value = item?.category || (selectedLibCategory || '');
         document.getElementById('lib-desc').value = item?.desc || '';
         document.getElementById('lib-unit').value = item?.unit || '';
@@ -1521,10 +1542,22 @@ const renderCustomerInvoices = () => {
         }
     };
 
-    window.deleteLibItemFromEditor = async () => {
-        if (!editingLibItemId) { closeLibItemEditor(); return; }
-        await deleteLibItem(editingLibItemId);
-        closeLibItemEditor();
+    window.deleteLibItem = async (id) => {
+        if(!confirm("Delete this library item?")) return;
+
+        // Optimistic Update
+        const prev = [...libraryItems];
+        libraryItems = libraryItems.filter(i => i.id !== id);
+        renderLibraryDashboard();
+
+        try {
+            await deleteDoc(doc(db, `users/${dataUid()}/libraryItems`, id));
+            showToast("Deleted");
+        } catch(e) {
+            libraryItems = prev;
+            renderLibraryDashboard();
+            showToast("Error deleting");
+        }
     };
 
     window.exportLibraryJSON = () => {
@@ -1602,8 +1635,22 @@ window.createNewInvoice = async () => {
     };
 
     window.deleteInvoice = async (id) => {
-        if(confirm("Delete this invoice?")) {
+        if(!confirm("Delete this invoice?")) return;
+
+        // 1. Optimistic UI: Remove from local array and re-render immediately
+        const oldInvoices = [...invoices]; // backup in case of error
+        invoices = invoices.filter(i => i.id !== id);
+        renderInvoiceList();
+
+        try {
             await deleteDoc(doc(db, `users/${dataUid()}/invoices`, id));
+            showToast("Invoice Deleted");
+        } catch (e) {
+            console.error(e);
+            showToast("Error deleting");
+            // Revert if failed
+            invoices = oldInvoices;
+            renderInvoiceList();
         }
     };
 
