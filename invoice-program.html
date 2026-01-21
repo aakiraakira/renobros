@@ -220,7 +220,12 @@
             .nav-links { display:none; }
             .mobile-nav-btn { display:inline-flex; align-items:center; justify-content:center; }
             .user-menu #user-display { display:none; }
-            #dashboard-view, #customers-view, #library-view, #editor-view { padding: 14px; }
+            /* keeps general padding small, but adds huge space at bottom so you can scroll past the footer */
+#dashboard-view, #customers-view, #library-view { padding: 14px; }
+#editor-view { 
+    padding: 14px; 
+    padding-bottom: 250px !important; /* increased from 100px to 250px to clear the stacked mobile footer */
+}
 
             /* Footer bar on small screens */
             .footer-bar { flex-direction: column; align-items: stretch; gap: 10px; }
