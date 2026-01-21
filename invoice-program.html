@@ -128,8 +128,8 @@
         .input-control:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
         
         /* Section Styles */
-        .section-block { background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border); margin-bottom: 20px; overflow: hidden; }
-        .section-title-bar { background: #f8fafc; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
+        .section-block { background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border); margin-bottom: 20px; /* overflow: hidden; removed to fix dropdowns */ }
+        .section-title-bar { background: #f8fafc; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); border-radius: 12px 12px 0 0; }
         .section-title-input { background: transparent; border: none; font-weight: 700; font-size: 1rem; color: var(--primary); width: 70%; }
         .item-row { padding: 15px 20px; border-bottom: 1px solid var(--border); }
         .item-row:last-child { border-bottom: none; }
@@ -431,8 +431,8 @@
     box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
     max-height: 220px;
     overflow-y: auto;
-    z-index: 1000;
-    display: none; /* Hidden by default */
+    z-index: 9999; /* Ensure it floats above everything */
+    display: none; 
 }
 
 .suggestions-list.show { display: block; }
@@ -1522,7 +1522,72 @@ const renderCustomerInvoices = () => {
             tbody.appendChild(tr);
         });
     };
+    // Helper to attach autocomplete to section titles
+    function setupSectionAutocomplete(inputId, listId, dataOptions, sectionId, triggerId) {
+        const input = document.getElementById(inputId);
+        const list = document.getElementById(listId);
+        const trigger = document.getElementById(triggerId);
+        
+        if(!input || !list) return;
 
+        // Render the list based on filter
+        const render = (filterText = '') => {
+            list.innerHTML = '';
+            const lowerFilter = filterText.toLowerCase();
+            
+            // If dataOptions is empty, show a fallback or default list
+            let matches = dataOptions.filter(opt => opt.toLowerCase().includes(lowerFilter));
+            
+            // OPTIONAL: If no categories exist yet, show a default message
+            if (dataOptions.length === 0) {
+                 matches = ["General", "Carpentry", "Electrical", "Plumbing"]; // Default fallbacks
+            }
+
+            if (matches.length === 0) {
+                list.classList.remove('show');
+                return;
+            }
+            
+            matches.forEach(opt => {
+                const item = document.createElement('div');
+                item.className = 'suggestion-item';
+                item.innerText = opt;
+                // Prevent input blur when clicking an item
+                item.onmousedown = (e) => e.preventDefault(); 
+                item.onclick = () => {
+                    input.value = opt;
+                    list.classList.remove('show');
+                    updateSectionTitle(sectionId, opt); 
+                };
+                list.appendChild(item);
+            });
+            list.classList.add('show');
+        };
+
+        // Input Events
+        input.onfocus = () => render(input.value); 
+        input.oninput = (e) => render(e.target.value);
+        input.onblur = () => setTimeout(() => list.classList.remove('show'), 200);
+
+        // Button Events
+        if (trigger) {
+            // CRITICAL FIX: Prevent the button click from blurring the input
+            trigger.onmousedown = (e) => {
+                e.preventDefault(); 
+            };
+
+            trigger.onclick = (e) => {
+                e.stopPropagation();
+                // Toggle logic
+                if (list.classList.contains('show')) {
+                    list.classList.remove('show');
+                } else {
+                    render(''); // Show all
+                    input.focus(); // Keep focus
+                }
+            };
+        }
+    }
     // --- REUSABLE AUTOCOMPLETE LOGIC ---
     function setupAutocomplete(inputId, listId, dataOptions) {
         const input = document.getElementById(inputId);
@@ -1752,20 +1817,47 @@ window.createNewInvoice = async () => {
         container.innerHTML = '';
         let grandTotal = 0;
 
+        // 1. Get unique Categories
+        const distinctCategories = [...new Set(libraryItems.map(i => i.category || 'General'))].sort();
+
         (currentInvoice.sections || []).forEach((section, sIndex) => {
             const sectionTotal = section.items.reduce((sum, item) => sum + (item.price * item.qty), 0);
             grandTotal += sectionTotal;
 
             const sectionEl = document.createElement('div');
             sectionEl.className = 'section-block';
+            
             sectionEl.innerHTML = `
                 <div class="section-title-bar">
                     <div style="display:flex; align-items:center; gap:10px; flex:1;">
                         <span style="font-weight:700; color:var(--text-muted);">${String.fromCharCode(65 + sIndex)}.</span>
-                        <input type="text" class="section-title-input" value="${section.title}" onchange="updateSectionTitle(${section.id}, this.value)">
+                        
+                        <div class="autocomplete-wrapper" style="flex:1; max-width: 70%; display:flex; align-items:center; position:relative;">
+                            <input type="text" 
+                                id="sec-title-${section.id}"
+                                class="section-title-input" 
+                                style="flex:1;" 
+                                value="${section.title}" 
+                                placeholder="Section Title"
+                                onchange="updateSectionTitle(${section.id}, this.value)"
+                                autocomplete="off">
+                                
+                            <button id="btn-dropdown-${section.id}" tabindex="-1" style="background:none; border:none; cursor:pointer; padding: 8px; color:var(--text-muted);">
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+
+                            <div id="list-sec-title-${section.id}" class="suggestions-list" style="width:100%;"></div>
+                        </div>
                     </div>
-                    <div class="section-total">$${sectionTotal.toFixed(2)}</div>
+                    
+                    <div style="display:flex; align-items:center; gap:15px;">
+                        <div class="section-total">$${sectionTotal.toFixed(2)}</div>
+                        <button class="btn-icon-danger" onclick="deleteSection(${section.id})" title="Delete Section">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
                 </div>
+
                 <div class="items-container">
                     ${section.items.map((item) => `
                         <div class="item-row">
@@ -1802,12 +1894,22 @@ window.createNewInvoice = async () => {
                 </div>
             `;
             container.appendChild(sectionEl);
+
+            // Pass the new button ID to the helper
+            setupSectionAutocomplete(
+                `sec-title-${section.id}`, 
+                `list-sec-title-${section.id}`, 
+                distinctCategories, 
+                section.id, 
+                `btn-dropdown-${section.id}` // <--- Passing the button ID
+            );
         });
 
+        // ... rest of function (totals, owner metrics) stays the same ...
         const amountPaid = currentInvoice.amountPaid || 0;
         document.getElementById('ui-grand-total').textContent = `$${grandTotal.toFixed(2)}`;
         document.getElementById('ui-balance').textContent = `Balance: $${(grandTotal - amountPaid).toFixed(2)}`;
-        // Owner-only internal cost / profit
+        
         const ownerBox = document.getElementById('owner-metrics');
         if (ownerBox) {
             if (isOwner()) {
@@ -1897,6 +1999,19 @@ window.createNewInvoice = async () => {
         const s = currentInvoice.sections.find(x => x.id === sId);
         s.items.push({ id: Date.now(), desc: "Description...", unit: "L/S", price: 0, qty: 1 });
         renderBuilder(); triggerAutoSave();
+    };
+    window.deleteSection = (sectionId) => {
+        if (!currentInvoice) return;
+        
+        const section = currentInvoice.sections.find(s => s.id === sectionId);
+        // Optional: Warn if section has items, otherwise delete immediately if empty
+        if (section && section.items.length > 0) {
+            if (!confirm(`Delete section "${section.title}" and all its items?`)) return;
+        }
+
+        currentInvoice.sections = currentInvoice.sections.filter(s => s.id !== sectionId);
+        renderBuilder();
+        triggerAutoSave();
     };
 
     window.addNewSection = async () => {
