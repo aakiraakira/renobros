@@ -419,7 +419,40 @@
     .footer-bar .flex.gap-2 { width: 100%; }
     .footer-bar button { flex: 1; justify-content: center; }
 }
+/* --- CUSTOM AUTOCOMPLETE STYLES --- */
+.autocomplete-wrapper { position: relative; width: 100%; }
 
+.suggestions-list {
+    position: absolute;
+    top: 100%; left: 0; right: 0;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+    max-height: 220px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none; /* Hidden by default */
+}
+
+.suggestions-list.show { display: block; }
+
+.suggestion-item {
+    padding: 10px 12px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    border-bottom: 1px solid #f1f5f9;
+    color: var(--text-main);
+    transition: background 0.1s;
+}
+
+.suggestion-item:last-child { border-bottom: none; }
+
+.suggestion-item:hover { 
+    background: #f1f5f9; 
+    color: var(--accent);
+    padding-left: 16px; /* smooth slide effect */
+}
 </style>
 </head>
 <body>
@@ -846,20 +879,24 @@
     <div class="modal-body" style="flex-direction:column; padding: 15px 20px; gap: 12px; overflow:auto;">
       <div class="form-grid" style="grid-template-columns:1fr 1fr;">
         <div class="input-group" style="grid-column: span 2;">
-          <label>Category</label>
-          <input type="text" id="lib-category" class="input-control" list="category-list" placeholder="Select or type new category..." autocomplete="off">
-          <datalist id="category-list"></datalist>
+            <label>Category</label>
+            <div class="autocomplete-wrapper">
+                <input type="text" id="lib-category" class="input-control" placeholder="Select or type..." autocomplete="off">
+                <div id="list-category" class="suggestions-list"></div>
+            </div>
         </div>
 
         <div class="input-group" style="grid-column: span 2;">
-          <label>Description</label>
-          <textarea id="lib-desc" class="input-control" rows="3" placeholder="e.g., Sliding wardrobe (internal PVC)"></textarea>
+            <label>Description</label>
+            <textarea id="lib-desc" class="input-control" rows="3" placeholder="e.g., Sliding wardrobe..."></textarea>
         </div>
 
         <div class="input-group">
-          <label>Unit</label>
-          <input type="text" id="lib-unit" class="input-control" list="unit-list" placeholder="Select or type..." autocomplete="off">
-          <datalist id="unit-list"></datalist>
+            <label>Unit</label>
+            <div class="autocomplete-wrapper">
+                <input type="text" id="lib-unit" class="input-control" placeholder="ft, No, L/S..." autocomplete="off">
+                <div id="list-unit" class="suggestions-list"></div>
+            </div>
         </div>
         <div class="input-group">
           <label>Rate ($)</label>
@@ -1486,40 +1523,76 @@ const renderCustomerInvoices = () => {
         });
     };
 
+    // --- REUSABLE AUTOCOMPLETE LOGIC ---
+    function setupAutocomplete(inputId, listId, dataOptions) {
+        const input = document.getElementById(inputId);
+        const list = document.getElementById(listId);
+        
+        // Render the list
+        const render = (filterText = '') => {
+            list.innerHTML = '';
+            const lowerFilter = filterText.toLowerCase();
+            
+            // Filter options
+            const matches = dataOptions.filter(opt => 
+                opt.toLowerCase().includes(lowerFilter)
+            ).sort();
+
+            if (matches.length === 0) {
+                list.classList.remove('show');
+                return;
+            }
+
+            matches.forEach(opt => {
+                const item = document.createElement('div');
+                item.className = 'suggestion-item';
+                item.innerText = opt;
+                item.onclick = () => {
+                    input.value = opt;
+                    list.classList.remove('show');
+                };
+                list.appendChild(item);
+            });
+            list.classList.add('show');
+        };
+
+        // Event Listeners
+        // 1. Show all on click/focus
+        input.onfocus = () => render(''); 
+        input.onclick = () => render(input.value);
+        
+        // 2. Filter on type
+        input.oninput = (e) => render(e.target.value);
+
+        // 3. Close when clicking outside
+        // (Using a slight delay to allow the item click to register first)
+        input.onblur = () => {
+            setTimeout(() => list.classList.remove('show'), 200);
+        };
+    }
+
     window.openLibItemEditor = (id = null) => {
         editingLibItemId = id;
         const item = id ? libraryItems.find(x => x.id === id) : null;
         document.getElementById('lib-edit-title').innerText = id ? 'Edit Library Item' : 'New Library Item';
 
-        // --- 1. SETUP CATEGORY LIST ---
-        // Get all unique categories used in the library + defaults
-        const existingCats = new Set(libraryItems.map(i => i.category || 'General'));
-        existingCats.add("General"); 
-        existingCats.add("Carpentry");
-        existingCats.add("Electrical");
-        // Convert to array and sort
-        const sortedCats = [...existingCats].sort();
-        // Fill the dropdown
-        document.getElementById('category-list').innerHTML = sortedCats.map(c => `<option value="${c}">`).join('');
+        // --- PREPARE DATA ---
+        
+        // 1. Categories
+        const catSet = new Set(libraryItems.map(i => i.category || 'General'));
+        ['General', 'Carpentry', 'Electrical', 'Masonry', 'Plumbing', 'Painting', 'Demolition'].forEach(c => catSet.add(c));
+        const categories = [...catSet];
 
-        // --- 2. SETUP UNIT LIST ---
-        // Get all unique units + defaults
-        const existingUnits = new Set(libraryItems.map(i => i.unit || 'L/S'));
-        // Add common defaults so they are always available
-        existingUnits.add("L/S");
-        existingUnits.add("ft");
-        existingUnits.add("ft²");
-        existingUnits.add("No");
-        existingUnits.add("set");
-        existingUnits.add("lot");
-        // Convert and sort
-        const sortedUnits = [...existingUnits].sort();
-        // Fill the dropdown
-        document.getElementById('unit-list').innerHTML = sortedUnits.map(u => `<option value="${u}">`).join('');
+        // 2. Units
+        const unitSet = new Set(libraryItems.map(i => i.unit || 'L/S'));
+        ['L/S', 'ft', 'ft²', 'No', 'set', 'lot', 'm', 'm²'].forEach(u => unitSet.add(u));
+        const units = [...unitSet];
 
+        // --- ACTIVATE AUTOCOMPLETE ---
+        setupAutocomplete('lib-category', 'list-category', categories);
+        setupAutocomplete('lib-unit', 'list-unit', units);
 
-        // --- 3. SET CURRENT VALUES ---
-        // If editing, use item data. If new, use the currently selected sidebar category or empty.
+        // --- SET VALUES ---
         document.getElementById('lib-category').value = item?.category || (selectedLibCategory || '');
         document.getElementById('lib-desc').value = item?.desc || '';
         document.getElementById('lib-unit').value = item?.unit || '';
@@ -1527,7 +1600,6 @@ const renderCustomerInvoices = () => {
 
         document.getElementById('libItemModal').classList.add('active');
     };
-
     window.closeLibItemEditor = () => {
         editingLibItemId = null;
         document.getElementById('libItemModal').classList.remove('active');
