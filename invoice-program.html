@@ -453,6 +453,30 @@
     color: var(--accent);
     padding-left: 16px; /* smooth slide effect */
 }
+/* --- TABS STYLE --- */
+.tabs-row {
+    display: flex;
+    gap: 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+    padding-left: 5px;
+}
+.tab-btn {
+    background: none;
+    border: none;
+    padding: 10px 5px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+.tab-btn:hover { color: var(--primary); }
+.tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+}
 </style>
 </head>
 <body>
@@ -505,6 +529,10 @@
                 <button class="mobile-nav-link" onclick="openSettings(); closeMobileNav()">Settings</button>
             </div>
         </div>
+    </div>
+    <div class="tabs-row">
+        <button class="tab-btn active" id="tab-quotation" onclick="switchDashboardTab('Quotation')">Quotations</button>
+        <button class="tab-btn" id="tab-invoice" onclick="switchDashboardTab('Invoice')">Invoices</button>
     </div>
 
 
@@ -957,6 +985,20 @@
     let customerInvoicesCache = {};
     let viewingCustomerId = null;
     let editingLibItemId = null;
+    // --- DASHBOARD TABS STATE ---
+    let dashboardTab = 'Quotation'; // Default to Quotations
+
+    window.switchDashboardTab = (tab) => {
+        dashboardTab = tab;
+        
+        // Update styling
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        const activeBtn = document.getElementById(tab === 'Quotation' ? 'tab-quotation' : 'tab-invoice');
+        if(activeBtn) activeBtn.classList.add('active');
+
+        // Re-render list
+        renderInvoiceList();
+    }
 
     // --- PERF / VIEW STATE ---
     let currentView = 'dashboard';
@@ -1227,13 +1269,18 @@
         const tbody = document.getElementById('invoice-list-body');
         tbody.innerHTML = '';
 
-        const filtered = invoices.filter(inv => 
-            (inv.clientName || '').toLowerCase().includes(term) || 
-            (inv.quoteRef || '').toLowerCase().includes(term)
-        );
+        // Filter by Search Term AND Active Tab (DocType)
+        const filtered = invoices.filter(inv => {
+            // Default legacy docs without a type to 'Quotation'
+            const type = inv.docType || 'Quotation';
+            const matchesTab = type === dashboardTab;
+            const matchesSearch = (inv.clientName || '').toLowerCase().includes(term) || 
+                                  (inv.quoteRef || '').toLowerCase().includes(term);
+            return matchesTab && matchesSearch;
+        });
 
         if (filtered.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px;">No invoices found.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px;">No ${dashboardTab.toLowerCase()}s found.</td></tr>`;
             return;
         }
 
