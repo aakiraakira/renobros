@@ -847,16 +847,19 @@
       <div class="form-grid" style="grid-template-columns:1fr 1fr;">
         <div class="input-group" style="grid-column: span 2;">
           <label>Category</label>
-          <input type="text" id="lib-category" class="input-control" list="category-list" placeholder="Select or type category..." autocomplete="off">
-<datalist id="category-list"></datalist>
+          <input type="text" id="lib-category" class="input-control" list="category-list" placeholder="Select or type new category..." autocomplete="off">
+          <datalist id="category-list"></datalist>
         </div>
+
         <div class="input-group" style="grid-column: span 2;">
           <label>Description</label>
           <textarea id="lib-desc" class="input-control" rows="3" placeholder="e.g., Sliding wardrobe (internal PVC)"></textarea>
         </div>
+
         <div class="input-group">
           <label>Unit</label>
-          <input type="text" id="lib-unit" class="input-control" placeholder="L/S, ft, ft², No">
+          <input type="text" id="lib-unit" class="input-control" list="unit-list" placeholder="Select or type..." autocomplete="off">
+          <datalist id="unit-list"></datalist>
         </div>
         <div class="input-group">
           <label>Rate ($)</label>
@@ -1488,18 +1491,35 @@ const renderCustomerInvoices = () => {
         const item = id ? libraryItems.find(x => x.id === id) : null;
         document.getElementById('lib-edit-title').innerText = id ? 'Edit Library Item' : 'New Library Item';
 
-        // --- NEW CODE START: Populate Categories Dropdown ---
-        // 1. Get all unique categories from existing items
-        const existingCats = [...new Set(libraryItems.map(i => i.category || 'General'))];
-        // 2. Sort them alphabetically
-        existingCats.sort((a, b) => a.localeCompare(b));
-        
-        // 3. Fill the datalist
-        const dataList = document.getElementById('category-list');
-        dataList.innerHTML = existingCats.map(c => `<option value="${c}">`).join('');
-        // --- NEW CODE END ---
+        // --- 1. SETUP CATEGORY LIST ---
+        // Get all unique categories used in the library + defaults
+        const existingCats = new Set(libraryItems.map(i => i.category || 'General'));
+        existingCats.add("General"); 
+        existingCats.add("Carpentry");
+        existingCats.add("Electrical");
+        // Convert to array and sort
+        const sortedCats = [...existingCats].sort();
+        // Fill the dropdown
+        document.getElementById('category-list').innerHTML = sortedCats.map(c => `<option value="${c}">`).join('');
 
-        // Set values
+        // --- 2. SETUP UNIT LIST ---
+        // Get all unique units + defaults
+        const existingUnits = new Set(libraryItems.map(i => i.unit || 'L/S'));
+        // Add common defaults so they are always available
+        existingUnits.add("L/S");
+        existingUnits.add("ft");
+        existingUnits.add("ft²");
+        existingUnits.add("No");
+        existingUnits.add("set");
+        existingUnits.add("lot");
+        // Convert and sort
+        const sortedUnits = [...existingUnits].sort();
+        // Fill the dropdown
+        document.getElementById('unit-list').innerHTML = sortedUnits.map(u => `<option value="${u}">`).join('');
+
+
+        // --- 3. SET CURRENT VALUES ---
+        // If editing, use item data. If new, use the currently selected sidebar category or empty.
         document.getElementById('lib-category').value = item?.category || (selectedLibCategory || '');
         document.getElementById('lib-desc').value = item?.desc || '';
         document.getElementById('lib-unit').value = item?.unit || '';
