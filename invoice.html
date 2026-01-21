@@ -1,0 +1,1730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RenoBros Cloud System</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #0f172a;
+            --primary-light: #334155;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --bg-app: #f1f5f9;
+            --bg-card: #ffffff;
+            --border: #e2e8f0;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-app);
+            color: var(--text-main);
+            margin: 0;
+            /* Padding bottom handled by specific views */
+            -webkit-font-smoothing: antialiased;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- UTILS --- */
+        .hidden { display: none !important; }
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .gap-2 { gap: 0.5rem; }
+        .gap-4 { gap: 1rem; }
+        .justify-between { justify-content: space-between; }
+        .items-center { align-items: center; }
+        .text-right { text-align: right; }
+        .font-bold { font-weight: 700; }
+        .text-sm { font-size: 0.875rem; }
+        .text-xs { font-size: 0.75rem; }
+        .text-muted { color: var(--text-muted); }
+        .badge {
+            padding: 4px 8px; border-radius: 99px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+        }
+        .badge-unpaid { background: #fee2e2; color: #991b1b; }
+        .badge-partial { background: #ffedd5; color: #9a3412; }
+        .badge-paid { background: #d1fae5; color: #065f46; }
+
+        /* --- AUTH SCREEN --- */
+        #auth-view {
+            flex: 1; display: flex; justify-content: center; align-items: center; padding: 20px;
+        }
+        .auth-card {
+            background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+            width: 100%; max-width: 400px; text-align: center;
+        }
+        .auth-logo { font-size: 2rem; color: var(--primary); font-weight: 800; margin-bottom: 2rem; }
+        .auth-logo span { color: var(--accent); }
+        .btn-full { width: 100%; justify-content: center; margin-top: 15px; }
+        .auth-toggle { margin-top: 20px; font-size: 0.9rem; color: var(--text-muted); cursor: pointer; text-decoration: underline; }
+
+        /* --- HEADER --- */
+        .app-header {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 60px;
+            flex-shrink: 0;
+            z-index: 50;
+        }
+        .brand-logo { font-weight: 800; font-size: 1.2rem; color: var(--primary); display: flex; align-items: center; gap: 8px; cursor: pointer; }
+        .brand-logo span { color: var(--accent); }
+        .nav-links { display: flex; gap: 20px; }
+        .nav-link { color: var(--text-muted); text-decoration: none; font-weight: 500; font-size: 0.9rem; cursor: pointer; padding: 5px 0; }
+        .nav-link.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
+        .user-menu { display: flex; align-items: center; gap: 15px; font-size: 0.9rem; }
+
+        /* --- DASHBOARD VIEW --- */
+        #dashboard-view { flex: 1; padding: 20px; overflow-y: auto; max-width: 1200px; margin: 0 auto; width: 100%; }
+        .dashboard-controls { display: flex; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        .search-bar { position: relative; width: 300px; }
+        .search-bar input { padding-left: 35px; }
+        .search-bar i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+        
+        .table-card { background: white; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+        .data-table { width: 100%; border-collapse: collapse; }
+        .data-table th, .data-table td { padding: 15px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        .data-table th { background: #f8fafc; color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; }
+        .data-table tr:hover { background: #f8fafc; }
+        .action-btn { background: none; border: none; cursor: pointer; color: var(--text-muted); transition: color 0.2s; padding: 5px; }
+        .action-btn:hover { color: var(--accent); }
+        .action-btn.delete:hover { color: var(--danger); }
+
+        /* --- EDITOR VIEW --- */
+        #editor-view { flex: 1; overflow-y: auto; padding-bottom: 100px; }
+        .main-container { max-width: 900px; margin: 20px auto; padding: 0 15px; }
+
+        /* Reuse existing card styles */
+        .card { background: var(--bg-card); border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid var(--border); padding: 20px; margin-bottom: 20px; }
+        .card-header { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+
+        .input-group label { display: block; font-size: 0.75rem; font-weight: 500; color: var(--text-muted); margin-bottom: 5px; }
+        .input-control, select.input-control { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-family: 'Inter', sans-serif; font-size: 0.95rem; color: var(--text-main); background: #fff; }
+        .input-control:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+        
+        /* Section Styles */
+        .section-block { background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border); margin-bottom: 20px; overflow: hidden; }
+        .section-title-bar { background: #f8fafc; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
+        .section-title-input { background: transparent; border: none; font-weight: 700; font-size: 1rem; color: var(--primary); width: 70%; }
+        .item-row { padding: 15px 20px; border-bottom: 1px solid var(--border); }
+        .item-row:last-child { border-bottom: none; }
+        .item-top { display: flex; justify-content: space-between; margin-bottom: 10px; gap: 10px; }
+        .item-desc { width: 100%; border: none; resize: none; font-family: 'Inter', sans-serif; font-size: 0.95rem; color: var(--text-main); background: transparent; min-height: 24px; }
+        .item-metrics { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .metric-box { position: relative; }
+        .metric-box span { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-size: 0.75rem; color: var(--text-muted); pointer-events: none; }
+        .metric-input { width: 80px; padding: 8px 8px 8px 24px; border: 1px solid var(--border); border-radius: 4px; text-align: right; font-size: 0.9rem; }
+        .unit-input { width: 60px; padding: 8px; text-align: center; }
+        
+        /* Buttons */
+        .btn-primary { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px; transition: background 0.2s; }
+        .btn-primary:hover { background: var(--primary-light); }
+        .btn-accent { background: var(--accent); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-accent:hover { background: var(--accent-hover); }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-main); padding: 8px 15px; border-radius: 6px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-outline:hover { background: #f1f5f9; }
+        .btn-icon-danger { color: #ef4444; background: none; border: none; cursor: pointer; padding: 5px; opacity: 0.6; }
+        .btn-icon-danger:hover { opacity: 1; }
+        .btn-dashed { width: 100%; border: 2px dashed var(--border); background: transparent; padding: 15px; border-radius: 8px; color: var(--text-muted); font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-dashed:hover { border-color: var(--accent); color: var(--accent); background: rgba(37, 99, 235, 0.05); }
+        .section-actions { padding: 10px 20px; background: #fff; display: flex; gap: 15px; border-top: 1px solid var(--border); }
+        .btn-text { background: none; border: none; color: var(--accent); font-weight: 600; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 6px; padding: 8px 0; }
+
+        /* Footer */
+        .footer-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--bg-card); border-top: 1px solid var(--border); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; z-index: 100; padding-bottom: max(15px, env(safe-area-inset-bottom)); }
+        .grand-total-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; }
+        .grand-total-value { font-size: 1.3rem; font-weight: 800; color: var(--primary); }
+
+        /* Modals */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(2px); z-index: 200; display: none; justify-content: center; align-items: center; }
+        .modal-overlay.active { display: flex; }
+        .modal-card { background: white; width: 95%; max-width: 700px; height: 80vh; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; animation: slideUp 0.3s ease-out; }
+        .modal-header { padding: 15px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: #f8fafc; }
+        .modal-body { flex: 1; overflow: hidden; display: flex; }
+        
+        .cat-sidebar { width: 30%; background: #f8fafc; border-right: 1px solid var(--border); overflow-y: auto; display: flex; flex-direction: column; }
+        .cat-btn { width: 100%; text-align: left; padding: 15px; border: none; background: none; border-bottom: 1px solid var(--border); color: var(--text-muted); font-weight: 600; cursor: pointer; font-size: 0.85rem; }
+        .cat-btn.active { background: white; color: var(--accent); border-left: 3px solid var(--accent); }
+        .item-list { width: 70%; overflow-y: auto; padding-bottom: 20px; }
+        .template-item { padding: 15px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .template-item:hover { background: #f1f5f9; }
+        .t-info { flex: 1; }
+        .t-desc { font-size: 0.9rem; font-weight: 500; margin-bottom: 4px; }
+        .t-meta { font-size: 0.75rem; color: var(--text-muted); }
+        .t-actions { display: flex; gap: 5px; opacity: 0.3; transition: opacity 0.2s; }
+        .template-item:hover .t-actions { opacity: 1; }
+
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        /* Toasts */
+        .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #334155; color: white; padding: 10px 20px; border-radius: 20px; font-size: 0.85rem; font-weight: 500; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 300; }
+        .toast.show { opacity: 1; }
+
+        .status-pill { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
+        .status-saved { background-color: var(--success); }
+        .status-unsaved { background-color: var(--warning); }
+
+        /* --- UI POLISH --- */
+        .section-block { border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); }
+        .section-title-bar { background: #f1f5f9; border-bottom: 1px solid #e2e8f0; }
+        .item-row:hover { background-color: #f8fafc; }
+        .input-control:disabled { background-color: #f1f5f9; color: #94a3b8; }
+
+        /* --- MOBILE OPTIMIZATION --- */
+        @media (max-width: 768px) {
+            .app-header { flex-direction: column; height: auto; gap: 10px; padding: 15px; }
+            .nav-links { width: 100%; overflow-x: auto; white-space: nowrap; padding-bottom: 5px; -webkit-overflow-scrolling: touch; }
+            .nav-link { padding: 8px 12px; background: #f8fafc; border-radius: 6px; margin-right: 5px; }
+            .nav-link.active { background: #e2e8f0; border-bottom: none; color: var(--primary); }
+            .user-menu { width: 100%; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 10px; }
+            
+            .table-card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            .data-table { min-width: 600px; }
+            
+            .form-grid { grid-template-columns: 1fr; }
+            .item-row { padding: 10px; }
+            .item-top { flex-direction: column; gap: 5px; }
+            .item-metrics { justify-content: space-between; width: 100%; margin-top: 5px; }
+            .metric-input { width: 30% !important; }
+            .unit-input { width: 20% !important; }
+            
+            .modal-card { height: 90vh; width: 100%; border-radius: 12px 12px 0 0; }
+            .cat-sidebar { width: 90px; }
+            .cat-btn { font-size: 0.75rem; padding: 10px 5px; word-wrap: break-word; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="auth-view">
+    <div class="auth-card">
+        <div class="auth-logo"><i class="fas fa-layer-group"></i> RenoBros<span>Cloud</span></div>
+        <h3 id="auth-title">Sign In</h3>
+        <div class="input-group" style="text-align: left; margin-bottom: 15px;">
+            <label>Email</label>
+            <input type="email" id="auth-email" class="input-control" placeholder="you@company.com">
+        </div>
+        <div class="input-group" style="text-align: left; margin-bottom: 15px;">
+            <label>Password</label>
+            <input type="password" id="auth-password" class="input-control" placeholder="••••••••">
+        </div>
+        <button class="btn-primary btn-full" id="btn-auth-action" onclick="handleAuth()">Sign In</button>
+        <p class="auth-toggle" id="btn-auth-toggle" onclick="toggleAuthMode()">New here? Create Account</p>
+        <div id="auth-error" style="color: var(--danger); font-size: 0.85rem; margin-top: 15px; display: none;"></div>
+    </div>
+</div>
+
+<div id="app-container" class="hidden" style="flex:1; display:flex; flex-direction:column;">
+    <header class="app-header">
+        <div class="brand-logo" onclick="switchView('dashboard')"><i class="fas fa-layer-group"></i> Renobros Interior <span>Pte Ltd</span></div>
+        <div class="nav-links">
+            <a class="nav-link active" id="nav-dashboard" onclick="switchView('dashboard')">Invoices</a>
+            <a class="nav-link" id="nav-editor" onclick="switchView('editor')">Editor</a>
+            <a class="nav-link" id="nav-customers" onclick="switchView('customers')">Customers</a>
+            <a class="nav-link" id="nav-library" onclick="switchView('library')">Library</a>
+            <a class="nav-link" onclick="openSettings()">Settings</a>
+        </div>
+        <div class="user-menu">
+            <span id="user-display"></span>
+            <button class="btn-outline" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
+        </div>
+    </header>
+
+    <div id="dashboard-view">
+        <div class="dashboard-controls">
+            <div class="flex items-center gap-4">
+                <h2 style="margin:0;">Invoices</h2>
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" class="input-control" id="search-invoices" placeholder="Search client or ref..." onkeyup="renderInvoiceList()">
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button class="btn-outline" onclick="document.getElementById('excel-upload').click()">
+                    <i class="fas fa-file-excel"></i> Upload Customers
+                    <input type="file" id="excel-upload" hidden accept=".xlsx, .xls" onchange="handleExcelUpload(this)">
+                </button>
+                <button class="btn-primary" onclick="createNewInvoice()">
+                    <i class="fas fa-plus"></i> New Invoice
+                </button>
+            </div>
+        </div>
+
+        <div class="table-card">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Ref</th>
+                        <th>Client</th>
+                        <th>Status</th>
+                        <th>Revenue</th>
+                        <th style="width:100px;">Cost (Input)</th>
+                        <th>Profit</th>
+                        <th class="text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="invoice-list-body">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+
+    <div id="customers-view" class="hidden">
+        <div class="dashboard-controls">
+            <div class="flex items-center gap-4">
+                <h2 style="margin:0;">Customers</h2>
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" class="input-control" id="search-customers" placeholder="Search name / phone / email..." onkeyup="renderCustomerList()">
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button class="btn-outline" onclick="exportCustomersExcel()">
+                    <i class="fas fa-download"></i> Export Excel
+                </button>
+                <button class="btn-outline" onclick="document.getElementById('excel-upload-customers').click()">
+                    <i class="fas fa-file-excel"></i> Upload Excel
+                    <input type="file" id="excel-upload-customers" hidden accept=".xlsx, .xls" onchange="handleExcelUpload(this)">
+                </button>
+                <button class="btn-primary" onclick="openCustomerEditor()">
+                    <i class="fas fa-user-plus"></i> Add Customer
+                </button>
+            </div>
+        </div>
+
+        <div class="table-card">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Phone</th>
+                        <th>Email</th>
+                        <th>Invoices</th>
+                        <th>Outstanding</th>
+                        <th class="text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="customer-list-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="library-view" class="hidden">
+        <div class="dashboard-controls">
+            <div class="flex items-center gap-4">
+                <h2 style="margin:0;">Library</h2>
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" class="input-control" id="search-library" placeholder="Search description..." onkeyup="renderLibraryDashboard()">
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button class="btn-outline" onclick="exportLibraryJSON()">
+                    <i class="fas fa-download"></i> Export JSON
+                </button>
+                <button class="btn-primary" onclick="openLibItemEditor()">
+                    <i class="fas fa-plus"></i> New Library Item
+                </button>
+            </div>
+        </div>
+
+        <div class="table-card">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Description</th>
+                        <th>Unit</th>
+                        <th>Rate</th>
+                        <th class="text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="library-list-body"></tbody>
+            </table>
+        </div>
+        <div style="margin-top:12px; color: var(--text-muted); font-size: 0.85rem;">
+            Tip: In the Editor, press the <b>Library</b> button inside a section to quickly insert items into an invoice.
+        </div>
+    </div>
+
+
+    <div id="editor-view" class="hidden">
+        <div class="main-container">
+            <div class="card">
+                <div class="card-header">
+                    <span>Invoice Details</span>
+                    <span id="save-status" class="text-xs text-muted"><span class="status-pill status-saved"></span>Saved</span>
+                </div>
+                <div class="form-grid">
+                    <div class="input-group">
+                        <label>Document Type</label>
+                        <select id="docType" class="input-control" onchange="updateInvoiceField('docType', this.value)">
+                            <option value="Quotation">Quotation</option>
+                            <option value="Invoice">Invoice</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Quote Ref</label>
+                        <input type="text" id="quoteRef" class="input-control" onchange="updateInvoiceField('quoteRef', this.value)">
+                    </div>
+                    <div class="input-group">
+                        <label>Client (Select or Type)</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="clientName" class="input-control" onchange="updateInvoiceField('clientName', this.value)">
+                            <button class="btn-outline" onclick="openCustomerPicker()"><i class="fas fa-user"></i></button>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Date</label>
+                        <input type="date" id="quoteDate" class="input-control" onchange="updateInvoiceField('quoteDate', this.value)">
+                    </div>
+                    <div class="input-group" style="grid-column: span 2;">
+                        <label>Property Address</label>
+                        <input type="text" id="address" class="input-control" onchange="updateInvoiceField('address', this.value)">
+                    </div>
+                    <div class="input-group" style="grid-column: span 2;">
+                        <label>Project Title (Cover Page)</label>
+                        <input type="text" id="projectTitle" class="input-control" onchange="updateInvoiceField('projectTitle', this.value)">
+                    </div>
+                </div>
+            </div>
+
+            <div id="sections-container"></div>
+
+            <div class="add-section-area">
+                <button class="btn-dashed" onclick="addNewSection()">
+                    <i class="fas fa-plus"></i> Add New Section
+                </button>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Payment & Revisions</div>
+                <div class="form-grid">
+                    <div class="input-group">
+                        <label>Payment Status</label>
+                        <select id="paymentStatus" class="input-control" onchange="updatePaymentStatus(this.value)">
+                            <option value="unpaid">Unpaid</option>
+                            <option value="partial">Partial</option>
+                            <option value="paid">Paid</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Amount Paid ($)</label>
+                        <input type="number" id="amountPaid" class="input-control" onchange="updateInvoiceField('amountPaid', parseFloat(this.value))">
+                    </div>
+                    <div class="input-group" style="grid-column: span 2;">
+                        <label>Create Revision (VO)</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="voNote" class="input-control" placeholder="Note for this revision (e.g. Added electrical)">
+                            <button class="btn-outline" onclick="createVO()">Create VO Snapshot</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span>Terms & Conditions</span>
+                    <button class="btn-text" onclick="loadDefaultTerms()">Reset to Default</button>
+                </div>
+                <textarea id="termsOverride" class="input-control" rows="6" onchange="updateInvoiceField('termsOverride', this.value)"></textarea>
+            </div>
+        </div>
+        
+        <div class="footer-bar">
+            <div>
+                <div class="grand-total-label">Grand Total</div>
+                <div class="grand-total-value" id="ui-grand-total">$0.00</div>
+                <div class="text-xs text-muted" id="ui-balance">Balance: $0.00</div>
+            </div>
+            <div class="flex gap-2">
+                <button class="btn-outline" onclick="exportToExcel()">
+                    <i class="fas fa-file-excel"></i> XLSX
+                </button>
+                <button class="btn-primary" id="btn-generate" onclick="generatePDF()">
+                    <i class="fas fa-file-pdf"></i> PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="templateModal" class="modal-overlay">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3 style="margin:0; font-size:1.1rem;">Library</h3>
+            <div class="flex gap-2">
+                <button class="btn-text" onclick="toggleLibEditMode()" id="btn-lib-mode">Manage Mode</button>
+                <button onclick="closeModal()" style="border:none; background:none; font-size:1.2rem; cursor:pointer;">&times;</button>
+            </div>
+        </div>
+        <div class="modal-body">
+            <div class="cat-sidebar" id="modalCategories">
+                <button class="cat-btn" onclick="promptAddCategory()" id="btn-add-cat" style="display:none; color:var(--accent);">+ Add Category</button>
+            </div>
+            <div class="item-list" id="modalItems">
+                </div>
+        </div>
+        <div class="modal-header" id="lib-add-panel" style="display:none; border-top:1px solid var(--border); border-bottom:none;">
+            <div class="flex gap-2" style="width:100%">
+                <input type="text" class="input-control" placeholder="Desc" id="new-lib-desc">
+                <input type="text" class="input-control" placeholder="Unit" id="new-lib-unit" style="width:80px;">
+                <input type="number" class="input-control" placeholder="$" id="new-lib-price" style="width:100px;">
+                <button class="btn-accent" onclick="addLibraryItem()">Add</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="customerModal" class="modal-overlay">
+    <div class="modal-card" style="height: 60vh;">
+        <div class="modal-header">
+            <h3>Select Customer</h3>
+            <button onclick="document.getElementById('customerModal').classList.remove('active')" style="border:none; background:none; font-size:1.2rem;">&times;</button>
+        </div>
+        <div class="modal-body" style="flex-direction: column; overflow-y:auto; padding:0;">
+            <div id="customer-list" style="width:100%;"></div>
+        </div>
+    </div>
+</div>
+
+<div id="settingsModal" class="modal-overlay">
+    <div class="modal-card" style="height: auto; max-height:80vh;">
+        <div class="modal-header">
+            <h3>Settings</h3>
+            <button onclick="document.getElementById('settingsModal').classList.remove('active')" style="border:none; background:none; font-size:1.2rem;">&times;</button>
+        </div>
+        <div style="padding: 20px;">
+            <label class="font-bold text-sm">Default Terms & Conditions</label>
+            <textarea id="setting-default-terms" class="input-control" rows="10" style="margin-top:10px;"></textarea>
+            <button class="btn-primary" style="margin-top:15px;" onclick="saveSettings()">Save Settings</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast">Action Successful</div>
+
+<!-- Customer Editor Modal -->
+<div id="customerEditModal" class="modal-overlay">
+  <div class="modal-card" style="height: 70vh;">
+    <div class="modal-header">
+      <h3 id="cust-edit-title" style="margin:0;">Customer</h3>
+      <button onclick="closeCustomerEditor()" style="border:none; background:none; font-size:1.2rem; cursor:pointer;">&times;</button>
+    </div>
+    <div class="modal-body" style="flex-direction:column; padding: 15px 20px; gap: 12px; overflow:auto;">
+      <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+        <div class="input-group">
+          <label>Name</label>
+          <input type="text" id="cust-name" class="input-control" placeholder="Customer name">
+        </div>
+        <div class="input-group">
+          <label>Phone</label>
+          <input type="text" id="cust-phone" class="input-control" placeholder="+65...">
+        </div>
+        <div class="input-group" style="grid-column: span 2;">
+          <label>Email</label>
+          <input type="email" id="cust-email" class="input-control" placeholder="customer@email.com">
+        </div>
+        <div class="input-group" style="grid-column: span 2;">
+          <label>Address</label>
+          <input type="text" id="cust-address" class="input-control" placeholder="Address">
+        </div>
+        <div class="input-group" style="grid-column: span 2;">
+          <label>Notes</label>
+          <textarea id="cust-notes" class="input-control" rows="3" placeholder="Optional notes..."></textarea>
+        </div>
+      </div>
+      <div class="flex" style="justify-content:flex-end; gap:10px;">
+        <button class="btn-outline" onclick="closeCustomerEditor()">Cancel</button>
+        <button class="btn-primary" onclick="saveCustomer()"><i class="fas fa-save"></i> Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Customer Detail Modal -->
+<div id="customerDetailModal" class="modal-overlay">
+  <div class="modal-card" style="height: 75vh;">
+    <div class="modal-header">
+      <div>
+        <h3 id="cust-detail-name" style="margin:0;">Customer</h3>
+        <div id="cust-detail-sub" style="font-size:0.85rem; color: var(--text-muted); margin-top:4px;"></div>
+      </div>
+      <button onclick="closeCustomerDetail()" style="border:none; background:none; font-size:1.2rem; cursor:pointer;">&times;</button>
+    </div>
+    <div class="modal-body" style="flex-direction:column; padding: 15px 20px; overflow:auto;">
+      <div class="card" style="margin:0 0 12px 0;">
+        <div class="card-header">Invoices</div>
+        <div class="table-card" style="margin:0;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Ref</th>
+                <th>Status</th>
+                <th>Total</th>
+                <th>Due</th>
+                <th class="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="cust-invoices-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Library Item Editor Modal -->
+<div id="libItemModal" class="modal-overlay">
+  <div class="modal-card" style="height: 70vh;">
+    <div class="modal-header">
+      <h3 id="lib-edit-title" style="margin:0;">Library Item</h3>
+      <button onclick="closeLibItemEditor()" style="border:none; background:none; font-size:1.2rem; cursor:pointer;">&times;</button>
+    </div>
+    <div class="modal-body" style="flex-direction:column; padding: 15px 20px; gap: 12px; overflow:auto;">
+      <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+        <div class="input-group" style="grid-column: span 2;">
+          <label>Category</label>
+          <input type="text" id="lib-category" class="input-control" placeholder="e.g., Carpentry">
+        </div>
+        <div class="input-group" style="grid-column: span 2;">
+          <label>Description</label>
+          <textarea id="lib-desc" class="input-control" rows="3" placeholder="e.g., Sliding wardrobe (internal PVC)"></textarea>
+        </div>
+        <div class="input-group">
+          <label>Unit</label>
+          <input type="text" id="lib-unit" class="input-control" placeholder="L/S, ft, ft², No">
+        </div>
+        <div class="input-group">
+          <label>Rate ($)</label>
+          <input type="number" id="lib-price" class="input-control" placeholder="0">
+        </div>
+      </div>
+      <div class="flex" style="justify-content:space-between; gap:10px; align-items:center;">
+        <button class="btn-outline" style="color: var(--danger); border-color: rgba(239,68,68,0.25);" onclick="deleteLibItemFromEditor()"><i class="fas fa-trash"></i> Delete</button>
+        <div class="flex" style="gap:10px;">
+          <button class="btn-outline" onclick="closeLibItemEditor()">Cancel</button>
+          <button class="btn-primary" onclick="saveLibItemFromEditor()"><i class="fas fa-save"></i> Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+    import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, addDoc, query, where, onSnapshot, orderBy, serverTimestamp, writeBatch, deleteDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+    // --- CONFIG ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyAv3-yhCQroJyX7x5lfDZu5O-RmGXDIpi8",
+      authDomain: "renobros-98c5a.firebaseapp.com",
+      projectId: "renobros-98c5a",
+      storageBucket: "renobros-98c5a.firebasestorage.app",
+      messagingSenderId: "133201459072",
+      appId: "1:133201459072:web:22943d8f9fc500c295f365"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // --- STATE ---
+    let currentUser = null;
+    // Workspace UID
+    // If you want ALL data to live under one UID (shared workspace), set WORKSPACE_UID below.
+    // If you want per-login isolated data, set it to '' (empty) and it will use currentUser.uid.
+    const WORKSPACE_UID = "BGhtY0fql4MPDUmHXnmJeey2p0r2";
+    const dataUid = () => (WORKSPACE_UID && WORKSPACE_UID.length > 0) ? WORKSPACE_UID : (currentUser ? currentUser.uid : null);
+
+    let invoices = [];
+    let libraryItems = [];
+    let customers = [];
+    let currentInvoice = null;
+    let activeSectionId = null; // For modal
+    let isLibEditMode = false;
+    let selectedLibCategory = "Preliminaries";
+    let saveTimeout = null;
+    let editingCustomerId = null;
+    let viewingCustomerId = null;
+    let editingLibItemId = null;
+
+
+    // --- AUTH LOGIC ---
+    let isLoginMode = true;
+    window.toggleAuthMode = () => {
+        isLoginMode = !isLoginMode;
+        document.getElementById('auth-title').innerText = isLoginMode ? 'Sign In' : 'Create Account';
+        document.getElementById('btn-auth-action').innerText = isLoginMode ? 'Sign In' : 'Sign Up';
+        document.getElementById('btn-auth-toggle').innerText = isLoginMode ? 'New here? Create Account' : 'Have an account? Sign In';
+    };
+
+    window.handleAuth = async () => {
+        const email = document.getElementById('auth-email').value;
+        const pass = document.getElementById('auth-password').value;
+        const errEl = document.getElementById('auth-error');
+        errEl.style.display = 'none';
+
+        try {
+            if (isLoginMode) {
+                await signInWithEmailAndPassword(auth, email, pass);
+            } else {
+                await createUserWithEmailAndPassword(auth, email, pass);
+            }
+        } catch (e) {
+            errEl.innerText = e.message;
+            errEl.style.display = 'block';
+        }
+    };
+
+    window.logout = () => signOut(auth);
+
+    onAuthStateChanged(auth, (user) => {
+        currentUser = user;
+        if (user) {
+            document.getElementById('auth-view').classList.add('hidden');
+            document.getElementById('app-container').classList.remove('hidden');
+            document.getElementById('user-display').innerText = user.email;
+            initAppData();
+        } else {
+            document.getElementById('auth-view').classList.remove('hidden');
+            document.getElementById('app-container').classList.add('hidden');
+        }
+    });
+
+    
+    const handleFsError = (err) => {
+        console.error(err);
+        if (err && err.code === 'permission-denied') {
+            showToast('Firestore permission denied. Update your Firestore Rules.');
+        } else {
+            showToast('Firestore error. Check console.');
+        }
+    };
+
+// --- DATA SYNC ---
+    function initAppData() {
+        if (!currentUser) return;
+        const uid = dataUid();
+
+        // Listen to Invoices
+        const qInv = query(collection(db, `users/${uid}/invoices`), orderBy('updatedAt', 'desc'));
+        onSnapshot(qInv, (snap) => {
+            invoices = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            renderInvoiceList();
+        }, handleFsError);
+
+        // Listen to Library
+        const qLib = query(collection(db, `users/${uid}/libraryItems`), orderBy('createdAt', 'desc'));
+        onSnapshot(qLib, (snap) => {
+            if (snap.empty) seedLibrary(uid);
+            libraryItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        }, handleFsError);
+
+        // Listen to Customers
+        const qCust = query(collection(db, `users/${uid}/customers`), orderBy('name'));
+        onSnapshot(qCust, (snap) => {
+            customers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        }, handleFsError);
+
+        // Load Settings
+        getDoc(doc(db, `users/${uid}/profile/settings`)).then(snap => {
+            if (snap.exists()) {
+                document.getElementById('setting-default-terms').value = snap.data().defaultTerms || '';
+            }
+        });
+    }
+
+    async function seedLibrary(uid) {
+        // Only run if empty
+        const initialData = [
+            { category: "Preliminaries", desc: "Project Management & Consultation", unit: "L/S", price: 3500 },
+            { category: "Preliminaries", desc: "Haulage & Debris Disposal", unit: "L/S", price: 1200 },
+
+            { category: "Hacking / Demolition", desc: "Hack existing floor tiles", unit: "ft²", price: 4.50 },
+            { category: "Masonry / Flooring", desc: "Supply & lay 600x600mm tiles", unit: "ft²", price: 12 },
+
+            { category: "Carpentry", desc: "Kitchen Cabinet (Bottom) - fabricate & install", unit: "ft", price: 140 },
+            { category: "Carpentry", desc: "Kitchen Cabinet (Top) - fabricate & install", unit: "ft", price: 120 },
+            { category: "Carpentry", desc: "Quartz countertop - supply & install", unit: "ft", price: 180 },
+            { category: "Carpentry", desc: "Sliding Wardrobe (Carcass) - fabricate & install", unit: "ft", price: 220 },
+            { category: "Carpentry", desc: "Sliding Wardrobe Doors - fabricate & install", unit: "ft", price: 180 },
+            { category: "Carpentry", desc: "Shoe Cabinet - fabricate & install", unit: "ft", price: 150 },
+            { category: "Carpentry", desc: "TV Console - fabricate & install", unit: "ft", price: 160 },
+            { category: "Carpentry", desc: "Vanity Cabinet - fabricate & install", unit: "ft", price: 150 },
+
+            { category: "Electrical", desc: "Lighting point (new)", unit: "No", price: 55 },
+            { category: "Electrical", desc: "Power point (new)", unit: "No", price: 65 },
+
+            { category: "Painting", desc: "Wall painting (2 coats)", unit: "L/S", price: 1800 }
+        ];
+        const batch = writeBatch(db);
+        initialData.forEach(item => {
+            const ref = doc(collection(db, `users/${uid}/libraryItems`));
+            batch.set(ref, { ...item, createdAt: serverTimestamp() });
+        });
+        await batch.commit();
+    }
+
+    // --- NAVIGATION ---
+    window.switchView = (view) => {
+        const views = ['dashboard', 'editor', 'customers', 'library'];
+        views.forEach(v => {
+            const el = document.getElementById(`${v}-view`);
+            if (el) el.classList.add('hidden');
+            const nav = document.getElementById(`nav-${v}`);
+            if (nav) nav.classList.remove('active');
+        });
+
+        const target = document.getElementById(`${view}-view`);
+        if (target) target.classList.remove('hidden');
+        const nav = document.getElementById(`nav-${view}`);
+        if (nav) nav.classList.add('active');
+
+        // Render on entry
+        if (view === 'dashboard') renderInvoiceList();
+        if (view === 'customers') renderCustomerList();
+        if (view === 'library') renderLibraryDashboard();
+    };
+
+    // --- DASHBOARD LOGIC ---
+    // --- DASHBOARD LOGIC (PROFIT UPDATED) ---
+    window.renderInvoiceList = () => {
+        const term = document.getElementById('search-invoices').value.toLowerCase();
+        const tbody = document.getElementById('invoice-list-body');
+        tbody.innerHTML = '';
+
+        const filtered = invoices.filter(inv => 
+            (inv.clientName || '').toLowerCase().includes(term) || 
+            (inv.quoteRef || '').toLowerCase().includes(term)
+        );
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:30px;">No invoices found.</td></tr>`;
+            return;
+        }
+
+        filtered.forEach(inv => {
+            const total = (inv.sections || []).reduce((acc, s) => acc + s.items.reduce((iAcc, i) => iAcc + (i.price * i.qty), 0), 0);
+            const cost = Number(inv.projectCost) || 0;
+            const profit = total - cost;
+            
+            const statusClass = inv.paymentStatus === 'paid' ? 'badge-paid' : (inv.paymentStatus === 'partial' ? 'badge-partial' : 'badge-unpaid');
+            const profitStyle = profit >= 0 ? 'color:var(--success)' : 'color:var(--danger)';
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${inv.quoteDate || '-'}</td>
+                <td class="font-bold">${inv.quoteRef}</td>
+                <td>${inv.clientName}</td>
+                <td><span class="badge ${statusClass}">${inv.paymentStatus || 'unpaid'}</span></td>
+                <td class="font-bold">$${total.toFixed(2)}</td>
+                <td>
+                    <input type="number" class="input-control" style="padding:5px; text-align:right;" 
+                           value="${cost}" onchange="updateInvoiceCost('${inv.id}', this.value)">
+                </td>
+                <td class="font-bold" style="${profitStyle}">$${profit.toFixed(2)}</td>
+                <td class="text-right">
+                    <button class="action-btn" onclick="loadInvoice('${inv.id}')"><i class="fas fa-edit"></i></button>
+                    <button class="action-btn" onclick="quickDownloadPDF('${inv.id}')"><i class="fas fa-file-pdf"></i></button>
+                    <button class="action-btn" onclick="duplicateInvoice('${inv.id}')"><i class="fas fa-copy"></i></button>
+                    <button class="action-btn delete" onclick="deleteInvoice('${inv.id}')"><i class="fas fa-trash"></i></button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    };
+
+    window.updateInvoiceCost = async (id, value) => {
+        const uid = dataUid();
+        if(!uid) return;
+        await updateDoc(doc(db, `users/${uid}/invoices`, id), { projectCost: parseFloat(value) || 0 });
+        showToast("Cost updated");
+    };
+
+    
+    // Quick PDF download from list views
+    window.quickDownloadPDF = (id) => {
+        const inv = invoices.find(x => x.id === id);
+        if (!inv) return;
+        generatePDF(inv);
+    };
+    // --- CUSTOMERS VIEW ---
+    const invoiceGrandTotal = (inv) => {
+        return (inv.sections || []).reduce((sum, s) => {
+            const st = (s.items || []).reduce((a, it) => a + (Number(it.qty) || 0) * (Number(it.price) || 0), 0);
+            return sum + st;
+        }, 0);
+    };
+
+    const invoiceDueAmount = (inv) => {
+        const total = invoiceGrandTotal(inv);
+        const paid = Number(inv.amountPaid) || 0;
+        const due = total - paid;
+        return due < 0 ? 0 : due;
+    };
+
+    const matchCustomerInvoices = (customer) => {
+        // Prefer explicit link
+        const byId = invoices.filter(inv => inv.customerId && inv.customerId === customer.id);
+        if (byId.length > 0) return byId;
+        // Fallback to name matching (legacy invoices)
+        const name = (customer.name || '').trim().toLowerCase();
+        return invoices.filter(inv => (inv.clientName || '').trim().toLowerCase() === name);
+    };
+
+    window.renderCustomerList = () => {
+        const term = (document.getElementById('search-customers')?.value || '').toLowerCase();
+        const tbody = document.getElementById('customer-list-body');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        const filtered = customers.filter(c => {
+            const blob = `${c.name || ''} ${c.phone || ''} ${c.email || ''}`.toLowerCase();
+            return blob.includes(term);
+        });
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:30px;">No customers found.</td></tr>`;
+            return;
+        }
+
+        filtered.forEach(c => {
+            const invs = matchCustomerInvoices(c);
+            const outstanding = invs.reduce((a, inv) => a + invoiceDueAmount(inv), 0);
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="font-bold">${c.name || '-'}</td>
+                <td>${c.phone || '-'}</td>
+                <td>${c.email || '-'}</td>
+                <td>${invs.length}</td>
+                <td style="color:${outstanding > 0 ? 'var(--danger)' : 'var(--success)'}">$${outstanding.toFixed(2)}</td>
+                <td class="text-right">
+                    <button class="action-btn" onclick="openCustomerDetail('${c.id}')"><i class="fas fa-eye"></i></button>
+                    <button class="action-btn" onclick="openCustomerEditor('${c.id}')"><i class="fas fa-pen"></i></button>
+                    <button class="action-btn delete" onclick="deleteCustomer('${c.id}')"><i class="fas fa-trash"></i></button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    };
+
+    window.openCustomerEditor = (id = null) => {
+        editingCustomerId = id;
+        const modal = document.getElementById('customerEditModal');
+        document.getElementById('cust-edit-title').innerText = id ? 'Edit Customer' : 'Add Customer';
+
+        const c = id ? customers.find(x => x.id === id) : null;
+        document.getElementById('cust-name').value = c?.name || '';
+        document.getElementById('cust-phone').value = c?.phone || '';
+        document.getElementById('cust-email').value = c?.email || '';
+        document.getElementById('cust-address').value = c?.address || '';
+        document.getElementById('cust-notes').value = c?.notes || '';
+
+        modal.classList.add('active');
+    };
+
+    window.closeCustomerEditor = () => {
+        editingCustomerId = null;
+        document.getElementById('customerEditModal').classList.remove('active');
+    };
+
+    window.saveCustomer = async () => {
+        const uid = dataUid();
+        if (!uid) return;
+
+        const payload = {
+            name: document.getElementById('cust-name').value.trim(),
+            phone: document.getElementById('cust-phone').value.trim(),
+            email: document.getElementById('cust-email').value.trim(),
+            address: document.getElementById('cust-address').value.trim(),
+            notes: document.getElementById('cust-notes').value.trim(),
+            updatedAt: serverTimestamp()
+        };
+
+        if (!payload.name) { showToast('Customer name is required'); return; }
+
+        try {
+            if (editingCustomerId) {
+                await updateDoc(doc(db, `users/${uid}/customers`, editingCustomerId), payload);
+            } else {
+                payload.createdAt = serverTimestamp();
+                await addDoc(collection(db, `users/${uid}/customers`), payload);
+            }
+            showToast('Saved');
+            closeCustomerEditor();
+        } catch (e) {
+            console.error(e);
+            showToast('Save failed (check permissions)');
+        }
+    };
+
+    window.deleteCustomer = async (id) => {
+        const uid = dataUid();
+        if (!uid) return;
+        if (!confirm('Delete this customer?')) return;
+        try {
+            await deleteDoc(doc(db, `users/${uid}/customers`, id));
+            showToast('Deleted');
+        } catch (e) {
+            console.error(e);
+            showToast('Delete failed (check permissions)');
+        }
+    };
+
+    window.openCustomerDetail = (id) => {
+        viewingCustomerId = id;
+        const c = customers.find(x => x.id === id);
+        if (!c) return;
+
+        document.getElementById('cust-detail-name').innerText = c.name || 'Customer';
+        document.getElementById('cust-detail-sub').innerText = [c.phone, c.email].filter(Boolean).join(' • ');
+
+        renderCustomerInvoices();
+        document.getElementById('customerDetailModal').classList.add('active');
+    };
+
+    window.closeCustomerDetail = () => {
+        viewingCustomerId = null;
+        document.getElementById('customerDetailModal').classList.remove('active');
+    };
+
+    const renderCustomerInvoices = () => {
+        const tbody = document.getElementById('cust-invoices-body');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        const c = customers.find(x => x.id === viewingCustomerId);
+        if (!c) return;
+
+        const invs = matchCustomerInvoices(c).sort((a,b) => (b.updatedAt?.seconds||0) - (a.updatedAt?.seconds||0));
+        if (invs.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px;">No invoices found for this customer.</td></tr>`;
+            return;
+        }
+
+        invs.forEach(inv => {
+            const total = invoiceGrandTotal(inv);
+            const due = invoiceDueAmount(inv);
+            const statusClass = inv.paymentStatus === 'paid' ? 'badge-paid' : (inv.paymentStatus === 'partial' ? 'badge-partial' : 'badge-unpaid');
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${inv.quoteDate || '-'}</td>
+                <td class="font-bold">${inv.quoteRef || '-'}</td>
+                <td><span class="badge ${statusClass}">${inv.paymentStatus || 'unpaid'}</span></td>
+                <td class="font-bold">$${total.toFixed(2)}</td>
+                <td style="color:${due > 0 ? 'var(--danger)' : 'var(--success)'}">$${due.toFixed(2)}</td>
+                <td class="text-right">
+                    <button class="action-btn" onclick="loadInvoice('${inv.id}'); switchView('editor')"><i class="fas fa-edit"></i></button>
+                    <button class="action-btn" onclick="quickDownloadPDF('${inv.id}')"><i class="fas fa-file-pdf"></i></button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    };
+
+    window.exportCustomersExcel = () => {
+        const rows = customers.map(c => ({
+            Name: c.name || '',
+            Phone: c.phone || '',
+            Email: c.email || '',
+            Address: c.address || '',
+            Notes: c.notes || ''
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(rows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Customers");
+        const fname = `customers_${new Date().toISOString().slice(0,10)}.xlsx`;
+        XLSX.writeFile(wb, fname);
+    };
+
+    // --- LIBRARY VIEW ---
+    window.renderLibraryDashboard = () => {
+        const term = (document.getElementById('search-library')?.value || '').toLowerCase();
+        const tbody = document.getElementById('library-list-body');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        const filtered = libraryItems
+            .filter(i => (i.desc || '').toLowerCase().includes(term))
+            .sort((a,b) => (a.category || '').localeCompare(b.category || ''));
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:30px;">No library items found.</td></tr>`;
+            return;
+        }
+
+        filtered.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${item.category || '-'}</td>
+                <td>${item.desc || '-'}</td>
+                <td>${item.unit || '-'}</td>
+                <td class="font-bold">$${(Number(item.price)||0).toFixed(2)}</td>
+                <td class="text-right">
+                    <button class="action-btn" onclick="openLibItemEditor('${item.id}')"><i class="fas fa-pen"></i></button>
+                    <button class="action-btn delete" onclick="deleteLibItem('${item.id}')"><i class="fas fa-trash"></i></button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    };
+
+    window.openLibItemEditor = (id = null) => {
+        editingLibItemId = id;
+        const item = id ? libraryItems.find(x => x.id === id) : null;
+        document.getElementById('lib-edit-title').innerText = id ? 'Edit Library Item' : 'New Library Item';
+
+        document.getElementById('lib-category').value = item?.category || (selectedLibCategory || '');
+        document.getElementById('lib-desc').value = item?.desc || '';
+        document.getElementById('lib-unit').value = item?.unit || '';
+        document.getElementById('lib-price').value = item?.price ?? '';
+
+        document.getElementById('libItemModal').classList.add('active');
+    };
+
+    window.closeLibItemEditor = () => {
+        editingLibItemId = null;
+        document.getElementById('libItemModal').classList.remove('active');
+    };
+
+    window.saveLibItemFromEditor = async () => {
+        const uid = dataUid();
+        if (!uid) return;
+
+        const payload = {
+            category: document.getElementById('lib-category').value.trim() || 'General',
+            desc: document.getElementById('lib-desc').value.trim(),
+            unit: document.getElementById('lib-unit').value.trim() || 'L/S',
+            price: Number(document.getElementById('lib-price').value) || 0,
+            updatedAt: serverTimestamp()
+        };
+
+        if (!payload.desc) { showToast('Description is required'); return; }
+
+        try {
+            if (editingLibItemId) {
+                await updateDoc(doc(db, `users/${uid}/libraryItems`, editingLibItemId), payload);
+            } else {
+                payload.createdAt = serverTimestamp();
+                await addDoc(collection(db, `users/${uid}/libraryItems`), payload);
+            }
+            showToast('Saved');
+            closeLibItemEditor();
+        } catch (e) {
+            console.error(e);
+            showToast('Save failed (check permissions)');
+        }
+    };
+
+    window.deleteLibItemFromEditor = async () => {
+        if (!editingLibItemId) { closeLibItemEditor(); return; }
+        await deleteLibItem(editingLibItemId);
+        closeLibItemEditor();
+    };
+
+    window.exportLibraryJSON = () => {
+        const data = libraryItems.map(i => ({ category: i.category, desc: i.desc, unit: i.unit, price: i.price }));
+        const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `library_${new Date().toISOString().slice(0,10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+    };
+
+
+
+window.createNewInvoice = async () => {
+        const newInv = {
+            docType: 'Quotation',
+            quoteRef: `RB-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`,
+            quoteDate: new Date().toISOString().split('T')[0],
+            clientName: '',
+            customerId: '',
+            address: '',
+            projectTitle: 'PROPOSED RENOVATION WORKS',
+            sections: [{ id: Date.now(), title: "General Works", items: [] }],
+            paymentStatus: 'unpaid',
+            amountPaid: 0,
+            termsOverride: '',
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+        };
+        const ref = await addDoc(collection(db, `users/${dataUid()}/invoices`), newInv);
+        loadInvoice(ref.id);
+    };
+
+    window.loadInvoice = (id) => {
+        currentInvoice = invoices.find(i => i.id === id);
+        if (!currentInvoice) return;
+        
+        // Populate Inputs
+        document.getElementById('docType').value = currentInvoice.docType || 'Quotation';
+        document.getElementById('quoteRef').value = currentInvoice.quoteRef || '';
+        document.getElementById('clientName').value = currentInvoice.clientName || '';
+        document.getElementById('address').value = currentInvoice.address || '';
+        document.getElementById('quoteDate').value = currentInvoice.quoteDate || '';
+        document.getElementById('projectTitle').value = currentInvoice.projectTitle || '';
+        document.getElementById('paymentStatus').value = currentInvoice.paymentStatus || 'unpaid';
+        document.getElementById('amountPaid').value = currentInvoice.amountPaid || 0;
+        document.getElementById('termsOverride').value = currentInvoice.termsOverride || '';
+        
+        renderBuilder();
+        switchView('editor');
+    };
+
+    window.duplicateInvoice = async (id) => {
+        const src = invoices.find(i => i.id === id);
+        if(!src) return;
+        const copy = { ...src };
+        delete copy.id;
+        copy.quoteRef = copy.quoteRef + " (Copy)";
+        copy.createdAt = serverTimestamp();
+        copy.updatedAt = serverTimestamp();
+        await addDoc(collection(db, `users/${dataUid()}/invoices`), copy);
+        showToast("Invoice Duplicated");
+    };
+
+    window.deleteInvoice = async (id) => {
+        if(confirm("Delete this invoice?")) {
+            await deleteDoc(doc(db, `users/${dataUid()}/invoices`, id));
+        }
+    };
+
+    // --- EDITOR LOGIC ---
+    window.renderBuilder = () => {
+        const container = document.getElementById('sections-container');
+        container.innerHTML = '';
+        let grandTotal = 0;
+
+        (currentInvoice.sections || []).forEach((section, sIndex) => {
+            const sectionTotal = section.items.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            grandTotal += sectionTotal;
+
+            const sectionEl = document.createElement('div');
+            sectionEl.className = 'section-block';
+            sectionEl.innerHTML = `
+                <div class="section-title-bar">
+                    <div style="display:flex; align-items:center; gap:10px; flex:1;">
+                        <span style="font-weight:700; color:var(--text-muted);">${String.fromCharCode(65 + sIndex)}.</span>
+                        <input type="text" class="section-title-input" value="${section.title}" onchange="updateSectionTitle(${section.id}, this.value)">
+                    </div>
+                    <div class="section-total" data-sec-total="${section.id}">$${sectionTotal.toFixed(2)}</div>
+                </div>
+                <div class="items-container">
+                    ${section.items.map((item) => `
+                        <div class="item-row">
+                            <div class="item-top">
+                                <textarea class="item-desc" rows="1" onchange="updateItem(${section.id}, ${item.id}, 'desc', this.value)">${item.desc}</textarea>
+                                <button class="btn-icon-danger" onclick="deleteItem(${section.id}, ${item.id})"><i class="fas fa-trash"></i></button>
+                            </div>
+                            <div class="item-metrics">
+                                <div class="metric-box">
+                                    <span>Qty</span>
+                                    <input type="number" class="metric-input" value="${item.qty}" onchange="updateItem(${section.id}, ${item.id}, 'qty', this.value)">
+                                </div>
+                                <div class="metric-box">
+                                    <input type="text" class="unit-input metric-input" style="padding-left:6px; width:60px; text-align:center;" value="${item.unit}" onchange="updateItem(${section.id}, ${item.id}, 'unit', this.value)">
+                                </div>
+                                <div class="metric-box">
+                                    <span>$</span>
+                                    <input type="number" class="metric-input" value="${item.price}" onchange="updateItem(${section.id}, ${item.id}, 'price', this.value)">
+                                </div>
+                                <div data-row-total="${item.id}" style="margin-left:auto; font-weight:600; font-size:0.9rem;">
+    $${(item.qty * item.price).toFixed(2)}
+</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="section-actions">
+                    <button class="btn-text" onclick="openLibrary(${section.id})">
+                        <i class="fas fa-book-open"></i> Library
+                    </button>
+                    <button class="btn-text" style="color:var(--text-muted)" onclick="addBlankItem(${section.id})">
+                        <i class="fas fa-plus"></i> Blank Item
+                    </button>
+                </div>
+            `;
+            container.appendChild(sectionEl);
+        });
+
+        const amountPaid = currentInvoice.amountPaid || 0;
+        document.getElementById('ui-grand-total').textContent = `$${grandTotal.toFixed(2)}`;
+        document.getElementById('ui-balance').textContent = `Balance: $${(grandTotal - amountPaid).toFixed(2)}`;
+    };
+
+    // --- DATA UPDATERS ---
+    window.updateInvoiceField = (field, val) => {
+        const inv = invOverride || currentInvoice;
+        if(!inv) return;
+        currentInvoice[field] = val;
+        triggerAutoSave();
+    };
+
+    window.updateSectionTitle = (id, val) => {
+        const s = currentInvoice.sections.find(x => x.id === id); 
+        if(s) { s.title = val; renderBuilder(); triggerAutoSave(); }
+    };
+
+    window.updateItem = (sId, iId, field, val) => {
+        const s = currentInvoice.sections.find(x => x.id === sId);
+        const item = s.items.find(x => x.id === iId);
+        if(item) { 
+            // 1. Update Data
+            item[field] = (field === 'qty' || field === 'price') ? parseFloat(val) || 0 : val;
+            
+            // 2. DOM Update (No Full Re-render)
+            if(field === 'qty' || field === 'price') {
+                const rowTotalEl = document.querySelector(`[data-row-total="${iId}"]`);
+                if(rowTotalEl) rowTotalEl.innerText = '$' + (item.qty * item.price).toFixed(2);
+                
+                const secTotal = s.items.reduce((sum, x) => sum + (x.qty * x.price), 0);
+                const secTotalEl = document.querySelector(`[data-sec-total="${sId}"]`);
+                if(secTotalEl) secTotalEl.innerText = '$' + secTotal.toFixed(2);
+
+                updateGrandTotals();
+            }
+            triggerAutoSave(); 
+        }
+    };
+
+    function updateGrandTotals() {
+        let grandTotal = 0;
+        (currentInvoice.sections || []).forEach(s => {
+            grandTotal += s.items.reduce((sum, i) => sum + (i.price * i.qty), 0);
+        });
+        const amountPaid = currentInvoice.amountPaid || 0;
+        document.getElementById('ui-grand-total').textContent = `$${grandTotal.toFixed(2)}`;
+        document.getElementById('ui-balance').textContent = `Balance: $${(grandTotal - amountPaid).toFixed(2)}`;
+    }
+
+    window.deleteItem = (sId, iId) => {
+        const s = currentInvoice.sections.find(x => x.id === sId);
+        s.items = s.items.filter(x => x.id !== iId);
+        renderBuilder(); triggerAutoSave();
+    };
+
+    window.addBlankItem = (sId) => {
+        const s = currentInvoice.sections.find(x => x.id === sId);
+        s.items.push({ id: Date.now(), desc: "Description...", unit: "L/S", price: 0, qty: 1 });
+        renderBuilder(); triggerAutoSave();
+    };
+
+    window.addNewSection = () => {
+        currentInvoice.sections.push({ id: Date.now(), title: "New Section", items: [] });
+        renderBuilder(); triggerAutoSave();
+    };
+
+    window.updatePaymentStatus = (val) => {
+        currentInvoice.paymentStatus = val;
+        if(val === 'paid') currentInvoice.paidAt = new Date().toISOString();
+        else currentInvoice.paidAt = null;
+        triggerAutoSave();
+    };
+
+    window.createVO = async () => {
+        const note = document.getElementById('voNote').value;
+        if(!note) return alert("Please add a note for this revision");
+        
+        // Snapshot
+        const snapshot = JSON.parse(JSON.stringify(currentInvoice));
+        delete snapshot.id; // clean
+        
+        const revRef = collection(db, `users/${dataUid()}/invoices/${currentInvoice.id}/revisions`);
+        await addDoc(revRef, {
+            voNumber: (currentInvoice.voNumberCurrent || 0) + 1,
+            note: note,
+            createdAt: serverTimestamp(),
+            snapshot: snapshot
+        });
+
+        // Update current invoice
+        currentInvoice.voNumberCurrent = (currentInvoice.voNumberCurrent || 0) + 1;
+        triggerAutoSave();
+        showToast("VO Revision Saved");
+        document.getElementById('voNote').value = '';
+    };
+
+    function triggerAutoSave() {
+        const status = document.getElementById('save-status');
+        status.innerHTML = `<span class="status-pill status-unsaved"></span>Saving...`;
+        
+        if (saveTimeout) clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(async () => {
+            if (!currentInvoice) return;
+            const ref = doc(db, `users/${dataUid()}/invoices`, currentInvoice.id);
+            const toSave = { ...currentInvoice, updatedAt: serverTimestamp() };
+            delete toSave.id; // Don't save ID inside doc
+            await updateDoc(ref, toSave);
+            status.innerHTML = `<span class="status-pill status-saved"></span>Saved`;
+        }, 800);
+    }
+
+    // --- LIBRARY ---
+    window.openLibrary = (sId) => {
+        activeSectionId = sId;
+        renderLibrary();
+        document.getElementById('templateModal').classList.add('active');
+    };
+
+    window.closeModal = () => {
+        document.getElementById('templateModal').classList.remove('active');
+        activeSectionId = null;
+    };
+
+    window.toggleLibEditMode = () => {
+        isLibEditMode = !isLibEditMode;
+        document.getElementById('btn-lib-mode').innerText = isLibEditMode ? "Done" : "Manage Mode";
+        document.getElementById('btn-add-cat').style.display = isLibEditMode ? 'block' : 'none';
+        document.getElementById('lib-add-panel').style.display = isLibEditMode ? 'flex' : 'none';
+        renderLibrary();
+    };
+
+    function renderLibrary() {
+        // Group by category
+        const cats = [...new Set(libraryItems.map(i => i.category))].sort();
+        if(!cats.includes(selectedLibCategory) && cats.length > 0) selectedLibCategory = cats[0];
+
+        // Sidebar
+        const sidebar = document.getElementById('modalCategories');
+        let sidebarHTML = cats.map(c => `
+            <button class="cat-btn ${c === selectedLibCategory ? 'active' : ''}" onclick="selectLibCategory('${c}')">
+                ${c}
+            </button>
+        `).join('');
+
+        if (isLibEditMode) {
+            sidebarHTML += `<button class="cat-btn" onclick="promptAddCategory()" id="btn-add-cat" style="display:block; color:var(--accent);">+ Add Category</button>`;
+        }
+
+        sidebar.innerHTML = sidebarHTML;
+
+        // Items
+        const list = document.getElementById('modalItems');
+        const items = libraryItems.filter(i => i.category === selectedLibCategory);
+        
+        list.innerHTML = items.map(item => `
+            <div class="template-item" onclick="${!isLibEditMode ? `selectTemplateItem('${item.id}')` : ''}">
+                <div class="t-info">
+                    <div class="t-desc">${item.desc}</div>
+                    <div class="t-meta">${item.unit} • $${item.price}</div>
+                </div>
+                ${isLibEditMode ? `
+                <div class="t-actions">
+                    <button class="btn-icon-danger" onclick="deleteLibItem('${item.id}')"><i class="fas fa-trash"></i></button>
+                </div>` : ''}
+            </div>
+        `).join('');
+
+        // Reattach event listeners to dynamic elements if needed, 
+        // but onclick attributes handle it here.
+        if(isLibEditMode) document.getElementById('btn-add-cat').style.display = 'block';
+    }
+
+    window.selectLibCategory = (c) => { selectedLibCategory = c; renderLibrary(); };
+
+    window.selectTemplateItem = (id) => {
+        if (!activeSectionId) return;
+        const item = libraryItems.find(i => i.id === id);
+        if (item) {
+            const s = currentInvoice.sections.find(x => x.id === activeSectionId);
+            s.items.push({ id: Date.now(), desc: item.desc, unit: item.unit, price: item.price, qty: 1 });
+            renderBuilder();
+            triggerAutoSave();
+            closeModal();
+        }
+    };
+
+    window.addLibraryItem = async () => {
+        const desc = document.getElementById('new-lib-desc').value;
+        const unit = document.getElementById('new-lib-unit').value;
+        const price = parseFloat(document.getElementById('new-lib-price').value) || 0;
+        
+        if(!desc) return;
+
+        await addDoc(collection(db, `users/${dataUid()}/libraryItems`), {
+            category: selectedLibCategory, desc, unit, price, createdAt: serverTimestamp()
+        });
+        
+        document.getElementById('new-lib-desc').value = '';
+        document.getElementById('new-lib-price').value = '';
+        showToast("Item added to Library");
+    };
+
+    window.deleteLibItem = async (id) => {
+        if(confirm("Delete this library item?")) {
+            await deleteDoc(doc(db, `users/${dataUid()}/libraryItems`, id));
+        }
+    };
+
+    window.promptAddCategory = () => {
+        const name = prompt("New Category Name:");
+        if(name) {
+            selectedLibCategory = name; // It will appear once an item is added to it
+            renderLibrary(); // Force refresh to show empty state with new cat selected (virtual)
+        }
+    };
+
+    // --- CUSTOMERS & EXCEL ---
+    window.handleExcelUpload = (input) => {
+        const file = input.files[0];
+        if(!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const json = XLSX.utils.sheet_to_json(sheet);
+            
+            // Expected cols: Name, Address, Phone, Email
+            const batch = writeBatch(db);
+            let count = 0;
+            json.forEach(row => {
+                if(row.Name) {
+                    const ref = doc(collection(db, `users/${dataUid()}/customers`));
+                    batch.set(ref, {
+                        name: row.Name,
+                        address: row.Address || '',
+                        phone: row.Phone || '',
+                        email: row.Email || '',
+                        createdAt: serverTimestamp()
+                    });
+                    count++;
+                }
+            });
+            await batch.commit();
+            showToast(`Imported ${count} customers`);
+            input.value = ''; // reset
+        };
+        reader.readAsArrayBuffer(file);
+    };
+
+    window.openCustomerPicker = () => {
+        document.getElementById('customerModal').classList.add('active');
+        const list = document.getElementById('customer-list');
+        list.innerHTML = customers.map(c => `
+            <div class="template-item" onclick="selectCustomer('${c.id}')">
+                <div class="t-info">
+                    <div class="t-desc">${c.name}</div>
+                    <div class="t-meta">${c.address}</div>
+                </div>
+            </div>
+        `).join('');
+    };
+
+    window.selectCustomer = (id) => {
+        const c = customers.find(x => x.id === id);
+        if(c) {
+            updateInvoiceField('clientName', c.name);
+            updateInvoiceField('customerId', c.id);
+            updateInvoiceField('address', c.address);
+            document.getElementById('clientName').value = c.name;
+            document.getElementById('address').value = c.address;
+            document.getElementById('customerModal').classList.remove('active');
+        }
+    };
+
+    // --- SETTINGS ---
+    window.openSettings = () => document.getElementById('settingsModal').classList.add('active');
+    window.saveSettings = async () => {
+        const val = document.getElementById('setting-default-terms').value;
+        await setDoc(doc(db, `users/${dataUid()}/profile/settings`), { defaultTerms: val }, { merge: true });
+        showToast("Settings Saved");
+        document.getElementById('settingsModal').classList.remove('active');
+    };
+    window.loadDefaultTerms = async () => {
+        const snap = await getDoc(doc(db, `users/${dataUid()}/profile/settings`));
+        if(snap.exists() && snap.data().defaultTerms) {
+            updateInvoiceField('termsOverride', snap.data().defaultTerms);
+            document.getElementById('termsOverride').value = snap.data().defaultTerms;
+        }
+    };
+
+    // --- EXCEL EXPORT ---
+    window.exportToExcel = () => {
+        if(!currentInvoice) return;
+        const rows = [];
+        // Header
+        rows.push(["Invoice Ref", currentInvoice.quoteRef]);
+        rows.push(["Client", currentInvoice.clientName]);
+        rows.push(["Date", currentInvoice.quoteDate]);
+        rows.push([]);
+        rows.push(["Section", "Description", "Unit", "Price", "Qty", "Total"]);
+
+        (currentInvoice.sections || []).forEach(s => {
+            rows.push([s.title, "", "", "", "", ""]);
+            s.items.forEach(i => {
+                rows.push(["", i.desc, i.unit, i.price, i.qty, i.price * i.qty]);
+            });
+            const sTotal = s.items.reduce((a,b)=>a+(b.price*b.qty),0);
+            rows.push(["", `Total ${s.title}`, "", "", "", sTotal]);
+            rows.push([]); // spacer
+        });
+
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, "Invoice");
+        XLSX.writeFile(wb, `${currentInvoice.quoteRef}.xlsx`);
+    };
+
+    // --- PDF GENERATION ---
+    window.generatePDF = (invOverride = null) => {
+                const inv = invOverride || currentInvoice;
+        if(!inv) return;
+        const btn = document.getElementById('btn-generate');
+        const originalText = btn ? btn.innerHTML : null;
+        if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        let grandTotal = 0;
+        
+        // Summary Body
+        const summaryBody = [[
+            {text: 'Item', style: 'tableHeader', border: [false, false, false, true]}, 
+            {text: 'Description', style: 'tableHeader', border: [false, false, false, true]}, 
+            {text: 'Amount', style: 'tableHeader', alignment: 'right', border: [false, false, false, true]}
+        ]];
+
+        inv.sections.forEach((section, index) => {
+            const sTotal = section.items.reduce((a, b) => a + (b.qty * b.price), 0);
+            grandTotal += sTotal;
+            summaryBody.push([
+                {text: String.fromCharCode(65 + index), style: 'tableCellSummary', border: [false, false, false, false]},
+                {text: section.title, style: 'tableCellSummary', border: [false, false, false, false]},
+                {text: '$'+sTotal.toLocaleString('en-SG',{minimumFractionDigits:2}), alignment: 'right', style: 'tableCellSummary', border: [false, false, false, false]}
+            ]);
+        });
+
+        // Details Body
+        const detailsBody = [[
+            {text: 'S/N', style: 'tableHeader', fillColor: '#f1f5f9'}, 
+            {text: 'Description', style: 'tableHeader', fillColor: '#f1f5f9'}, 
+            {text: 'Unit', style: 'tableHeader', alignment: 'center', fillColor: '#f1f5f9'}, 
+            {text: 'Rate', style: 'tableHeader', alignment: 'right', fillColor: '#f1f5f9'}, 
+            {text: 'Amount', style: 'tableHeader', alignment: 'right', fillColor: '#f1f5f9'}
+        ]];
+
+        let sn = 1;
+        inv.sections.forEach((section, sIndex) => {
+            const sectionTotal = section.items.reduce((sum, item) => sum + (item.qty * item.price), 0);
+            detailsBody.push([
+                {text: `${String.fromCharCode(65 + sIndex)}. ${section.title}`, colSpan: 5, style: 'sectionHeader', fillColor: '#e2e8f0', margin: [0, 10, 0, 5]},{},{},{},{}
+            ]);
+            section.items.forEach(item => {
+                detailsBody.push([
+                    {text: sn++, style: 'tableCell', color: '#64748b'},
+                    {text: item.desc, style: 'tableCell'},
+                    {text: `${item.qty} ${item.unit}`, alignment: 'center', style: 'tableCell'},
+                    {text: '$'+item.price.toLocaleString(), alignment: 'right', style: 'tableCell'},
+                    {text: '$'+(item.qty * item.price).toLocaleString(), alignment: 'right', style: 'tableCell'}
+                ]);
+            });
+            detailsBody.push([
+                {text: '', border: [false, false, false, false]},
+                {text: `Total for ${section.title}`, bold: true, alignment: 'right', colSpan: 3, style: 'tableCell', border: [false, false, false, false]},
+                {},{},
+                {text: '$'+sectionTotal.toLocaleString('en-SG',{minimumFractionDigits:2}), bold: true, alignment: 'right', style: 'tableCell', border: [false, true, false, false]}
+            ]);
+        });
+
+        // Terms
+        const termsText = inv.termsOverride || "This quotation is valid for 30 days.\nPayment terms: 50% Deposit, 40% Progress, 10% Completion.\nGoods sold are not refundable.";
+
+        const docDefinition = {
+            pageSize: 'A4',
+            pageMargins: [40, 40, 40, 60],
+            footer: (currentPage, pageCount) => ({ text: `Page ${currentPage} of ${pageCount}`, alignment: 'right', fontSize: 8, color: '#94a3b8', margin: [0, 0, 40, 0] }),
+            content: [
+                // Header
+                {
+                    columns: [
+                        { text: [{text: 'RenoBros ', bold: true, fontSize: 24, color: '#0f172a'}, {text: 'Cloud', bold: true, fontSize: 24, color: '#2563eb'}] },
+                        { stack: [
+                            {text: (inv.docType || 'QUOTATION').toUpperCase(), fontSize: 14, bold: true, letterSpacing: 2, alignment: 'right'},
+                            {text: inv.quoteDate, fontSize: 10, alignment: 'right'},
+                            {text: 'Ref: ' + inv.quoteRef, fontSize: 10, alignment: 'right'}
+                        ]}
+                    ], margin: [0, 0, 0, 40]
+                },
+                { text: (inv.projectTitle || '').toUpperCase(), fontSize: 14, bold: true, color: '#0f172a', margin: [0, 0, 0, 25] },
+                // Info Box
+                { canvas: [{ type: 'rect', x: 0, y: 0, w: 515, h: 65, r: 4, lineColor: '#e2e8f0' }], absolutePosition: {x: 40, y: 165} },
+                { columns: [{ width: '15%', text: 'ATTN TO:', bold: true, fontSize: 10, color: '#64748b' }, { width: '85%', text: (inv.clientName || '').toUpperCase(), bold: true, fontSize: 11 }], margin: [10, 10, 0, 5] },
+                { columns: [{ width: '15%', text: 'SITE:', bold: true, fontSize: 10, color: '#64748b' }, { width: '85%', text: (inv.address || '').toUpperCase(), bold: true, fontSize: 11 }], margin: [10, 0, 0, 30] },
+                // Summary
+                { text: 'SUMMARY OF COSTS', style: 'subHeader', margin: [0,20,0,10] },
+                { table: { widths: ['10%', '60%', '30%'], body: summaryBody }, layout: { hLineWidth: i=>i===1?1:0, vLineWidth: ()=>0, paddingTop: ()=>8, paddingBottom: ()=>8 } },
+                // Grand Total
+                { columns: [{ width: '*', text: '' }, { width: 'auto', table: { widths: [120, 120], body: [[{text: 'GRAND TOTAL', bold: true, alignment: 'right', fontSize: 11, margin:[0,5,0,5]}, {text: '$'+grandTotal.toLocaleString('en-SG',{minimumFractionDigits:2}), bold: true, alignment: 'right', fontSize: 13, color: '#0f172a', margin:[0,5,0,5]}]] }, layout: { hLineWidth: (i,n)=>i===0||i===n.table.body.length?1:0, vLineWidth: ()=>0 } }], margin: [0, 20, 0, 0] },
+                { text: '', pageBreak: 'after' },
+                // Details
+                { text: 'DETAILED BREAKDOWN', style: 'subHeader', margin: [0, 0, 0, 15] },
+                { table: { widths: ['6%', '54%', '12%', '14%', '14%'], headerRows: 1, body: detailsBody }, layout: { hLineWidth: (i)=>i<2?1:0, vLineWidth: ()=>0, hLineColor: ()=>'#cbd5e1', paddingTop: ()=>6, paddingBottom: ()=>6 } },
+                { text: '', pageBreak: 'before' },
+                // Terms
+                { text: 'TERMS & CONDITIONS', style: 'subHeader', margin: [0, 0, 0, 10] },
+                { text: termsText, fontSize: 9, color: '#475569', margin: [0, 0, 0, 40] },
+                // Signatures
+                { table: { widths: ['*', '*'], body: [[{ text: 'CONFIRMED & ACCEPTED BY:', fontSize: 10, bold: true }, { text: 'FOR RENOBROS:', fontSize: 10, bold: true, alignment: 'right' }], [{ text: '\n\n\n_____________________________\nClient Signature / Date', fontSize: 9, color: '#94a3b8' }, { text: '\n\n\n_____________________________\nAuthorised Signature', fontSize: 9, color: '#94a3b8', alignment: 'right' }]] }, layout: 'noBorders' }
+            ],
+            styles: {
+                tableHeader: { bold: true, fontSize: 9, color: '#1e293b', margin: [0, 4, 0, 4] },
+                tableCell: { fontSize: 9, margin: [0, 4, 0, 4] },
+                tableCellSummary: { fontSize: 10, margin: [0, 4, 0, 4], bold: true, color: '#334155' },
+                sectionHeader: { bold: true, fontSize: 10, color: '#0f172a' },
+                subHeader: { bold: true, fontSize: 11, color: '#64748b', letterSpacing: 1, decoration: 'underline' }
+            },
+            defaultStyle: { font: 'Roboto' }
+        };
+
+        try { pdfMake.createPdf(docDefinition).download(`${(inv.quoteRef || 'document')}.pdf`); } 
+        catch (e) { console.error(e); alert("PDF Error"); } 
+        finally { if(btn) btn.innerHTML = originalText; }
+    };
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.innerText = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+</script>
+</body>
+</html>
