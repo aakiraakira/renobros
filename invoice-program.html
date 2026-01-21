@@ -1693,12 +1693,53 @@ window.createNewInvoice = async () => {
     };
 
     window.updateItem = (sId, iId, field, val) => {
+        // Safety check
+        if (!currentInvoice) return;
+
         const s = currentInvoice.sections.find(x => x.id === sId);
         const item = s.items.find(x => x.id === iId);
-        if(item) { 
+        
+        if (item) { 
+            // 1. Update the value locally first
             item[field] = (field === 'qty' || field === 'price') ? parseFloat(val) || 0 : val;
+            
             renderBuilder(); 
             triggerAutoSave(); 
+
+            // 2. FEATURE: Check Library if Description changed
+            if (field === 'desc' && val && val.trim().length > 2) {
+                // Check if exists in library (case-insensitive)
+                const exists = libraryItems.some(lib => lib.desc.trim().toLowerCase() === val.trim().toLowerCase());
+                
+                if (!exists) {
+                    // Small delay to allow the UI to finish rendering before alert blocks it
+                    setTimeout(() => {
+                        if (confirm(`"${val}" is not in your Library.\n\nSave it now for future use?`)) {
+                            window.quickSaveToLibrary(val, item.unit, item.price);
+                        }
+                    }, 100);
+                }
+            }
+        }
+    };
+
+    // New Helper Function to save from Invoice -> Library
+    window.quickSaveToLibrary = async (desc, unit, price) => {
+        const uid = dataUid();
+        if (!uid) return;
+        
+        try {
+            await addDoc(collection(db, `users/${uid}/libraryItems`), {
+                category: 'General', // Defaults to General since we don't have a category picker here
+                desc: desc.trim(),
+                unit: unit || 'L/S',
+                price: Number(price) || 0,
+                createdAt: serverTimestamp()
+            });
+            showToast("Saved to Library");
+        } catch (e) {
+            console.error(e);
+            showToast("Error saving to library");
         }
     };
 
@@ -1714,9 +1755,46 @@ window.createNewInvoice = async () => {
         renderBuilder(); triggerAutoSave();
     };
 
-    window.addNewSection = () => {
+    window.addNewSection = async () => {
+        // 1. If no invoice exists, create one automatically
+        if (!currentInvoice) {
+            const uid = dataUid();
+            if (!uid) { showToast("Please log in first"); return; }
+            
+            // Create a blank invoice skeleton
+            const newInv = {
+                docType: 'Quotation',
+                quoteRef: `RB-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`,
+                quoteDate: new Date().toISOString().split('T')[0],
+                clientName: '',
+                // Start with empty sections so the one we add below is the first one
+                sections: [], 
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp()
+            };
+            
+            try {
+                // Save to DB immediately to get a valid ID
+                const ref = await addDoc(collection(db, `users/${uid}/invoices`), newInv);
+                // Set as active invoice
+                currentInvoice = { id: ref.id, ...newInv };
+                showToast("New Invoice Started");
+            } catch (e) {
+                console.error("Error creating invoice:", e);
+                showToast("Error creating invoice");
+                return;
+            }
+        }
+
+        // 2. Ensure sections array exists (handles legacy data)
+        if (!currentInvoice.sections) currentInvoice.sections = [];
+
+        // 3. Add the New Section
         currentInvoice.sections.push({ id: Date.now(), title: "New Section", items: [] });
-        renderBuilder(); triggerAutoSave();
+        
+        // 4. Update UI and Save
+        renderBuilder(); 
+        triggerAutoSave();
     };
 
     window.updatePaymentStatus = (val) => {
