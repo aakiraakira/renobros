@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>RenoBros Cloud System</title>
+    <title>Renobros Interior Pte Ltd System</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -259,13 +259,169 @@
             .badge { margin-left:auto; }
         }
 
-    </style>
+    
+        /* Owner-only metrics (cost/profit) */
+        .owner-metrics { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); max-width: 260px; }
+        .owner-metrics-row { display:flex; gap:10px; align-items:center; justify-content:space-between; }
+        .input-compact { padding: 10px 12px; height: 38px; font-size: 0.95rem; }
+        @media (max-width: 768px){
+            .owner-metrics { max-width: 100%; }
+            .owner-metrics-row { flex-direction: column; align-items: stretch; }
+        }
+
+        /* Pagination row */
+        .pagination-row { display:flex; align-items:center; justify-content:space-between; gap: 12px; margin-top: 12px; }
+        @media (max-width: 768px){
+            .pagination-row { flex-direction: column; align-items: stretch; }
+            .pagination-row .btn-outline { width: 100%; justify-content: center; }
+            .pagination-row .text-xs { text-align: center; }
+        }
+        /* --- MOBILE OPTIMIZATION OVERRIDE --- */
+@media (max-width: 768px) {
+    
+    /* 1. Global Touch & Text Polish */
+    body { font-size: 15px; } /* Slightly larger base text */
+    input, select, textarea { font-size: 16px !important; } /* Prevents iOS auto-zoom */
+    .btn-primary, .btn-outline, .btn-dashed { 
+        padding: 12px 20px; /* Larger touch targets */
+        height: 44px;       /* Minimum touch height standard */
+    }
+
+    /* 2. Optimized "App-Like" Dashboard Layout */
+    .dashboard-controls { 
+        flex-direction: column; 
+        gap: 12px; 
+        background: white;
+        padding: 15px;
+        margin: -20px -20px 20px -20px; /* Full width bleeding edge */
+        border-bottom: 1px solid var(--border);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+    }
+    .search-bar { max-width: 100%; width: 100%; }
+    .search-bar input { background: #f8fafc; border:none; padding-top:12px; padding-bottom:12px; }
+    
+    /* Hide specific non-critical buttons on mobile if crowded, or stack them */
+    .dashboard-controls .flex.gap-2 { 
+        display: grid; 
+        grid-template-columns: 1fr 1fr; /* 2 buttons per row */
+        width: 100%; 
+    }
+    .dashboard-controls .flex.gap-2 button { width: 100%; justify-content: center; }
+
+    /* 3. Mobile Card-Style Tables */
+    /* This transforms boring tables into nice "Cards" for each invoice/customer */
+    .data-table thead { display: none; }
+    .data-table tbody tr {
+        display: block;
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        padding: 15px;
+    }
+    .data-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border: none;
+        padding: 5px 0;
+        text-align: right;
+    }
+    .data-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        margin-right: 10px;
+        text-align: left;
+    }
+    /* Special handling for Actions row */
+    .data-table td.actions-cell {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px dashed var(--border);
+        justify-content: flex-end;
+        gap: 15px;
+    }
+    .action-btn { 
+        font-size: 1.1rem; 
+        padding: 8px; 
+        background: #f1f5f9; 
+        border-radius: 50%; 
+        width: 36px; height: 36px;
+    }
+
+    /* 4. Editor Mobile Transformation (Crucial) */
+    /* Transforms the horizontal item row into a clean vertical stack */
+    .item-row {
+        padding: 15px;
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        margin-bottom: 10px;
+    }
+    .item-top { margin-bottom: 12px; }
+    .item-desc { 
+        font-size: 1rem; 
+        min-height: 50px; 
+        border-bottom: 1px dashed var(--border);
+        margin-right: 0;
+    }
+    
+    /* Grid layout for Qty, Unit, Price, Total */
+    .item-metrics {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1.5fr auto; /* Columns for the inputs */
+        gap: 10px;
+        align-items: end;
+        width: 100%;
+    }
+    .metric-box { margin: 0; }
+    .metric-input, .unit-input { width: 100% !important; text-align: center; padding-left: 5px; }
+    
+    /* Hide labels inside inputs to save space, rely on placeholder or context */
+    .metric-box span { display: none; } 
+    
+    /* Total Price display on mobile row */
+    .item-metrics div:last-child {
+        grid-column: 1 / -1;
+        text-align: right;
+        font-size: 1.1rem;
+        color: var(--primary);
+        padding-top: 10px;
+        border-top: 1px dashed var(--border);
+        margin-top: 5px;
+    }
+
+    /* 5. Full Screen Modals */
+    .modal-card {
+        width: 100% !important;
+        height: 100% !important;
+        max-height: 100% !important;
+        border-radius: 0;
+    }
+    .modal-overlay { padding: 0; }
+
+    /* 6. Footer Sticky Fixes */
+    .footer-bar {
+        padding-bottom: max(20px, env(safe-area-inset-bottom));
+        flex-direction: column;
+        gap: 15px;
+    }
+    .footer-bar > div { width: 100%; }
+    .footer-bar .flex.gap-2 { width: 100%; }
+    .footer-bar button { flex: 1; justify-content: center; }
+}
+
+</style>
 </head>
 <body>
 
 <div id="auth-view">
     <div class="auth-card">
-        <div class="auth-logo"><i class="fas fa-layer-group"></i> RenoBros<span>Cloud</span></div>
+        <div class="auth-logo"><i class="fas fa-layer-group"></i> Renobros Interior<span> Pte Ltd</span></div>
         <h3 id="auth-title">Sign In</h3>
         <div class="input-group" style="text-align: left; margin-bottom: 15px;">
             <label>Email</label>
@@ -283,15 +439,15 @@
 
 <div id="app-container" class="hidden" style="flex:1; display:flex; flex-direction:column;">
     <header class="app-header">
-        <div class="brand-logo" onclick="switchView('dashboard')"><i class="fas fa-layer-group"></i> RenoBros<span>Cloud</span></div>
+        <div class="brand-logo" onclick="switchView('dashboard')"><i class="fas fa-layer-group"></i> Renobros Interior<span> Pte Ltd</span></div>
         <div class="nav-links">
             <a class="nav-link active" id="nav-dashboard" onclick="switchView('dashboard')">Invoices</a>
             <a class="nav-link" id="nav-editor" onclick="switchView('editor')">Editor</a>
             <a class="nav-link" id="nav-customers" onclick="switchView('customers')">Customers</a>
             <a class="nav-link" id="nav-library" onclick="switchView('library')">Library</a>
             <a class="nav-link" onclick="openSettings()">Settings</a>
-        <button class="mobile-nav-btn" aria-label="Open menu" onclick="openMobileNav()"><i class="fas fa-bars"></i></button>
         </div>
+        <button class="mobile-nav-btn" aria-label="Open menu" onclick="openMobileNav()"><i class="fas fa-bars"></i></button>
         <div class="user-menu">
             <span id="user-display"></span>
             <button class="btn-outline" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
@@ -300,7 +456,7 @@
     <div id="mobile-nav-overlay" class="mobile-nav-overlay hidden" onclick="closeMobileNav(event)">
         <div class="mobile-nav-panel" onclick="event.stopPropagation()">
             <div class="mobile-nav-header">
-                <div class="brand-logo" style="cursor:default;"><i class="fas fa-layer-group"></i> RenoBros<span>Cloud</span></div>
+                <div class="brand-logo" style="cursor:default;"><i class="fas fa-layer-group"></i> Renobros Interior<span> Pte Ltd</span></div>
                 <button class="btn-outline" style="padding:8px 10px;" onclick="closeMobileNav()"><i class="fas fa-times"></i></button>
             </div>
             <div class="mobile-nav-links">
@@ -352,6 +508,13 @@
             </table>
         </div>
     </div>
+
+        <div class="pagination-row" id="invoice-pagination">
+            <button class="btn-outline" id="btn-load-more" onclick="loadMoreInvoices()">
+                <i class="fas fa-arrow-down"></i> Load more
+            </button>
+            <div class="text-xs text-muted" id="invoice-page-status">Showing 0 invoices</div>
+        </div>
 
 
     <div id="customers-view" class="hidden">
@@ -521,6 +684,14 @@
                 <div class="grand-total-label">Grand Total</div>
                 <div class="grand-total-value" id="ui-grand-total">$0.00</div>
                 <div class="text-xs text-muted" id="ui-balance">Balance: $0.00</div>
+                <div id="owner-metrics" class="owner-metrics hidden">
+                    <div class="owner-metrics-row">
+                        <div class="text-xs text-muted">Internal Cost (owner)</div>
+                        <input id="internalCost" type="number" class="input-control input-compact" inputmode="decimal" placeholder="0.00"
+                               oninput="updateInvoiceField('internalCost', parseFloat(this.value)||0)">
+                    </div>
+                    <div class="text-xs text-muted" id="ui-profit">Profit: $0.00</div>
+                </div>
             </div>
             <div class="flex gap-2">
                 <button class="btn-outline" onclick="exportToExcel()">
@@ -701,7 +872,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-    import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, addDoc, query, where, onSnapshot, orderBy, serverTimestamp, writeBatch, deleteDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+    import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, addDoc, query, where, onSnapshot, orderBy, serverTimestamp, writeBatch, deleteDoc, getDocs, limit, startAfter} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
     // --- CONFIG ---
     const firebaseConfig = {
@@ -723,9 +894,12 @@
     // If you want ALL data to live under one UID (shared workspace), set WORKSPACE_UID below.
     // If you want per-login isolated data, set it to '' (empty) and it will use currentUser.uid.
     const WORKSPACE_UID = "BGhtY0fql4MPDUmHXnmJeey2p0r2";
+    const OWNER_UID = 'BGhtY0fql4MPDUmHXnmJeey2p0r2';
+    const isOwner = () => currentUser && currentUser.uid === OWNER_UID;
     const dataUid = () => (WORKSPACE_UID && WORKSPACE_UID.length > 0) ? WORKSPACE_UID : (currentUser ? currentUser.uid : null);
 
     let invoices = [];
+    let invoicePaging = { pageSize: 25, lastDoc: null, hasMore: true, loading: false, loadedCount: 0 };
     let libraryItems = [];
     let customers = [];
     let currentInvoice = null;
@@ -734,6 +908,7 @@
     let selectedLibCategory = "Preliminaries";
     let saveTimeout = null;
     let editingCustomerId = null;
+    let customerInvoicesCache = {};
     let viewingCustomerId = null;
     let editingLibItemId = null;
 
@@ -826,7 +1001,7 @@
     };
 
 // --- DATA SYNC ---
-    function initAppData() {
+    async function initAppData() {
         if (!currentUser) return;
 
         cleanupListeners();
@@ -837,13 +1012,10 @@
             return;
         }
 
-        // Listen to Invoices (order by updated)
-        const qInv = query(collection(db, `users/${uid}/invoices`), orderBy('updatedAt', 'desc'));
-        const unsubInv = onSnapshot(qInv, (snap) => {
-            invoices = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-            if (currentView === 'dashboard') renderInvoiceList();
-        }, handleFsError);
-        unsubscribers.push(unsubInv);
+        // Invoices are loaded with pagination for scalability
+        invoices = [];
+        invoicePaging = { pageSize: 25, lastDoc: null, hasMore: true, loading: false, loadedCount: 0 };
+        await refreshInvoices();
 
         // Listen to Library
         const qLib = query(collection(db, `users/${uid}/libraryItems`), orderBy('createdAt', 'desc'));
@@ -869,6 +1041,84 @@
             if (currentView === 'customers') renderCustomerList();
         }, handleFsError);
         unsubscribers.push(unsubCust);
+    }
+    // --- INVOICE PAGINATION & LOADING ---
+    window.refreshInvoices = async () => {
+        const uid = dataUid();
+        if (!uid) return;
+        
+        invoicePaging.loading = true;
+        document.getElementById('invoice-list-body').innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px;">Loading invoices...</td></tr>';
+        
+        try {
+            // Reset state
+            invoices = [];
+            
+            const q = query(
+                collection(db, `users/${uid}/invoices`), 
+                orderBy('createdAt', 'desc'), 
+                limit(invoicePaging.pageSize)
+            );
+            
+            const snap = await getDocs(q);
+            
+            invoicePaging.lastDoc = snap.docs[snap.docs.length - 1];
+            invoicePaging.hasMore = snap.docs.length === invoicePaging.pageSize;
+            invoices = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            invoicePaging.loadedCount = invoices.length;
+            
+            renderInvoiceList();
+            updatePaginationStatus();
+        } catch (e) {
+            console.error("Error loading invoices:", e);
+            showToast("Error loading invoices");
+        } finally {
+            invoicePaging.loading = false;
+        }
+    };
+
+    window.loadMoreInvoices = async () => {
+        if (!invoicePaging.hasMore || invoicePaging.loading) return;
+        
+        const uid = dataUid();
+        invoicePaging.loading = true;
+        const btn = document.getElementById('btn-load-more');
+        if(btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+
+        try {
+            const q = query(
+                collection(db, `users/${uid}/invoices`), 
+                orderBy('createdAt', 'desc'), 
+                startAfter(invoicePaging.lastDoc), 
+                limit(invoicePaging.pageSize)
+            );
+
+            const snap = await getDocs(q);
+            
+            invoicePaging.lastDoc = snap.docs[snap.docs.length - 1];
+            invoicePaging.hasMore = snap.docs.length === invoicePaging.pageSize;
+            
+            const newInvoices = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            invoices = [...invoices, ...newInvoices];
+            invoicePaging.loadedCount = invoices.length;
+            
+            renderInvoiceList();
+            updatePaginationStatus();
+        } catch (e) {
+            console.error(e);
+            showToast("Failed to load more");
+        } finally {
+            invoicePaging.loading = false;
+            if(btn) btn.innerHTML = '<i class="fas fa-arrow-down"></i> Load more';
+        }
+    };
+
+    function updatePaginationStatus() {
+        const statusEl = document.getElementById('invoice-page-status');
+        const btn = document.getElementById('btn-load-more');
+        
+        if (statusEl) statusEl.innerText = `Showing ${invoices.length} invoices`;
+        if (btn) btn.style.display = invoicePaging.hasMore ? 'inline-flex' : 'none';
     }
 
     async function seedLibrary(uid) {
@@ -1104,7 +1354,10 @@
         document.getElementById('cust-detail-name').innerText = c.name || 'Customer';
         document.getElementById('cust-detail-sub').innerText = [c.phone, c.email].filter(Boolean).join(' • ');
 
+        // Load customer invoices on demand (does not require loading all invoices)
+        customerInvoicesCache[id] = null;
         renderCustomerInvoices();
+        fetchCustomerInvoices(id).then(list => { customerInvoicesCache[id] = list; renderCustomerInvoices(); }).catch(()=>{ customerInvoicesCache[id] = []; renderCustomerInvoices(); });
         document.getElementById('customerDetailModal').classList.add('active');
     };
 
@@ -1113,7 +1366,22 @@
         document.getElementById('customerDetailModal').classList.remove('active');
     };
 
-    const renderCustomerInvoices = () => {
+    
+    async function fetchCustomerInvoices(customerId) {
+        const uid = dataUid();
+        if (!uid || !customerId) return [];
+        // Fetch up to 200 recent invoices for this customer (fast enough per customer)
+        const q = query(
+            collection(db, `users/${uid}/invoices`),
+            where('customerId', '==', customerId),
+            orderBy('updatedAt', 'desc'),
+            limit(200)
+        );
+        const snap = await getDocs(q);
+        return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
+
+const renderCustomerInvoices = () => {
         const tbody = document.getElementById('cust-invoices-body');
         if (!tbody) return;
         tbody.innerHTML = '';
@@ -1121,7 +1389,12 @@
         const c = customers.find(x => x.id === viewingCustomerId);
         if (!c) return;
 
-        const invs = matchCustomerInvoices(c).sort((a,b) => (b.updatedAt?.seconds||0) - (a.updatedAt?.seconds||0));
+        const cached = customerInvoicesCache[viewingCustomerId];
+        if (cached === null || cached === undefined) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px;">Loading...</td></tr>`;
+            return;
+        }
+        const invs = (cached || []).sort((a,b) => (b.updatedAt?.seconds||0) - (a.updatedAt?.seconds||0));
         if (invs.length === 0) {
             tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px;">No invoices found for this customer.</td></tr>`;
             return;
@@ -1280,14 +1553,23 @@ window.createNewInvoice = async () => {
             updatedAt: serverTimestamp()
         };
         const ref = await addDoc(collection(db, `users/${dataUid()}/invoices`), newInv);
-        loadInvoice(ref.id);
+        await loadInvoice(ref.id);
     };
 
-    window.loadInvoice = (id) => {
+    window.loadInvoice = async (id) => {
         currentInvoice = invoices.find(i => i.id === id);
-        if (!currentInvoice) return;
-        
-        // Populate Inputs
+        if (!currentInvoice) {
+            try {
+                const snap = await getDoc(doc(db, `users/${dataUid()}/invoices`, id));
+                if (!snap.exists()) return;
+                currentInvoice = { id: snap.id, ...snap.data() };
+            } catch (e) {
+                console.error(e);
+                showToast('Failed to load invoice');
+                return;
+            }
+        }
+// Populate Inputs
         document.getElementById('docType').value = currentInvoice.docType || 'Quotation';
         document.getElementById('quoteRef').value = currentInvoice.quoteRef || '';
         document.getElementById('clientName').value = currentInvoice.clientName || '';
@@ -1359,7 +1641,7 @@ window.createNewInvoice = async () => {
                                     <span>$</span>
                                     <input type="number" class="metric-input" value="${item.price}" onchange="updateItem(${section.id}, ${item.id}, 'price', this.value)">
                                 </div>
-                                <div style="margin-left:auto; font-weight:600; font-size:0.9rem;">
+                                <div class="row-total" style="margin-left:auto; font-weight:800; font-size:0.95rem; color:var(--primary);">
                                     $${(item.qty * item.price).toFixed(2)}
                                 </div>
                             </div>
@@ -1381,6 +1663,21 @@ window.createNewInvoice = async () => {
         const amountPaid = currentInvoice.amountPaid || 0;
         document.getElementById('ui-grand-total').textContent = `$${grandTotal.toFixed(2)}`;
         document.getElementById('ui-balance').textContent = `Balance: $${(grandTotal - amountPaid).toFixed(2)}`;
+        // Owner-only internal cost / profit
+        const ownerBox = document.getElementById('owner-metrics');
+        if (ownerBox) {
+            if (isOwner()) {
+                ownerBox.classList.remove('hidden');
+                const ic = parseFloat(currentInvoice.internalCost) || 0;
+                const icInput = document.getElementById('internalCost');
+                if (icInput && (document.activeElement !== icInput)) icInput.value = ic ? ic.toFixed(2) : '';
+                const profit = grandTotal - ic;
+                const profitEl = document.getElementById('ui-profit');
+                if (profitEl) profitEl.textContent = `Profit: $${profit.toFixed(2)}`;
+            } else {
+                ownerBox.classList.add('hidden');
+            }
+        }
     };
 
     // --- DATA UPDATERS ---
@@ -1715,8 +2012,9 @@ window.createNewInvoice = async () => {
             {text: 'Amount', style: 'tableHeader', alignment: 'right', fillColor: '#f1f5f9'}
         ]];
 
-        let sn = 1;
+        /* reset S/N per section (A 1..n, B 1..n) */
         inv.sections.forEach((section, sIndex) => {
+            let sn = 1; // reset numbering for each section
             const sectionTotal = section.items.reduce((sum, item) => sum + (item.qty * item.price), 0);
             detailsBody.push([
                 {text: `${String.fromCharCode(65 + sIndex)}. ${section.title}`, colSpan: 5, style: 'sectionHeader', fillColor: '#e2e8f0', margin: [0, 10, 0, 5]},{},{},{},{}
@@ -1749,7 +2047,7 @@ window.createNewInvoice = async () => {
                 // Header
                 {
                     columns: [
-                        { text: [{text: 'RenoBros ', bold: true, fontSize: 24, color: '#0f172a'}, {text: 'Cloud', bold: true, fontSize: 24, color: '#2563eb'}] },
+                        { text: [{text: 'Renobros Interior ', bold: true, fontSize: 22, color: '#0f172a'}, {text: 'Pte Ltd', bold: true, fontSize: 22, color: '#2563eb'}] },
                         { stack: [
                             {text: (inv.docType || 'QUOTATION').toUpperCase(), fontSize: 14, bold: true, letterSpacing: 2, alignment: 'right'},
                             {text: inv.quoteDate, fontSize: 10, alignment: 'right'},
