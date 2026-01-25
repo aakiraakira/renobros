@@ -537,6 +537,20 @@
 
 
     <div id="dashboard-view">
+        <div class="flex gap-4" style="margin-bottom: 20px; flex-wrap: wrap;">
+            <div class="card" style="flex: 1; padding: 15px; margin-bottom: 0; min-width: 200px; border-left: 4px solid var(--accent);">
+                <div class="text-xs text-muted font-bold uppercase">Total Quoted</div>
+                <div class="font-bold" style="font-size: 1.5rem;" id="dash-total-value">$0.00</div>
+            </div>
+            <div class="card" style="flex: 1; padding: 15px; margin-bottom: 0; min-width: 200px; border-left: 4px solid var(--success);">
+                <div class="text-xs text-muted font-bold uppercase">Collected</div>
+                <div class="font-bold" style="font-size: 1.5rem; color: var(--success);" id="dash-total-collected">$0.00</div>
+            </div>
+            <div class="card" style="flex: 1; padding: 15px; margin-bottom: 0; min-width: 200px; border-left: 4px solid var(--danger);">
+                <div class="text-xs text-muted font-bold uppercase">Outstanding</div>
+                <div class="font-bold" style="font-size: 1.5rem; color: var(--danger);" id="dash-total-outstanding">$0.00</div>
+            </div>
+        </div>
         <div class="dashboard-controls">
             <div class="flex items-center gap-4">
                 <h2 style="margin:0;">Invoices</h2>
@@ -1104,6 +1118,7 @@
         invoices = [];
         invoicePaging = { pageSize: 25, lastDoc: null, hasMore: true, loading: false, loadedCount: 0 };
         await refreshInvoices();
+        refreshDashboardStats();
 
         // Listen to Library
         const qLib = query(collection(db, `users/${uid}/libraryItems`), orderBy('createdAt', 'desc'));
@@ -1198,6 +1213,50 @@
         } finally {
             invoicePaging.loading = false;
             if(btn) btn.innerHTML = '<i class="fas fa-arrow-down"></i> Load more';
+        }
+    };
+    // --- DASHBOARD STATS ---
+    window.refreshDashboardStats = async () => {
+        const uid = dataUid();
+        if (!uid) return;
+
+        // Visual loading state
+        document.getElementById('dash-total-value').innerText = '...';
+        document.getElementById('dash-total-collected').innerText = '...';
+        document.getElementById('dash-total-outstanding').innerText = '...';
+
+        try {
+            // Fetch ALL invoices (lightweight fetch if possible, but Firestore requires full docs here)
+            // Note: If you have >2000 invoices, consider creating a separate 'stats' document in Firestore to read instead.
+            const q = query(collection(db, `users/${uid}/invoices`)); 
+            const snap = await getDocs(q);
+            
+            let sumTotal = 0;
+            let sumCollected = 0;
+            let sumOutstanding = 0;
+
+            snap.docs.forEach(doc => {
+                const inv = doc.data();
+                
+                // Reuse existing helper to calculate total of sections/items
+                const total = invoiceGrandTotal(inv); 
+                const paid = Number(inv.amountPaid) || 0;
+                
+                // Logic: Only count positive outstanding amounts
+                const due = total - paid;
+                
+                sumTotal += total;
+                sumCollected += paid;
+                if(due > 0) sumOutstanding += due;
+            });
+
+            // Update DOM
+            document.getElementById('dash-total-value').innerText = `$${sumTotal.toLocaleString('en-SG', {minimumFractionDigits: 2})}`;
+            document.getElementById('dash-total-collected').innerText = `$${sumCollected.toLocaleString('en-SG', {minimumFractionDigits: 2})}`;
+            document.getElementById('dash-total-outstanding').innerText = `$${sumOutstanding.toLocaleString('en-SG', {minimumFractionDigits: 2})}`;
+
+        } catch (e) {
+            console.error("Stats error:", e);
         }
     };
 
@@ -1984,6 +2043,46 @@ window.createNewInvoice = async () => {
         const s = currentInvoice.sections.find(x => x.id === id); 
         if(s) { s.title = val; renderBuilder(); triggerAutoSave(); }
     };
+    window.saveRowToLibrary = async (sId, iId) => {
+        const uid = dataUid();
+        if (!uid) return;
+
+        const section = currentInvoice.sections.find(s => s.id === sId);
+        const item = section.items.find(i => i.id === iId);
+        
+        if (!item || !item.desc) {
+            showToast("Description required");
+            return;
+        }
+
+        // Use Section Title as Category (Default to 'General' if empty)
+        const category = section.title && section.title.trim() !== '' ? section.title : 'General';
+
+        try {
+            // Check for duplicates in existing libraryItems array to avoid spam
+            const exists = libraryItems.some(lib => 
+                lib.desc.toLowerCase() === item.desc.toLowerCase() && 
+                lib.category.toLowerCase() === category.toLowerCase()
+            );
+
+            if (exists) {
+                showToast("Item already in library");
+                return;
+            }
+
+            await addDoc(collection(db, `users/${uid}/libraryItems`), {
+                category: category,
+                desc: item.desc,
+                unit: item.unit || 'L/S',
+                price: Number(item.price) || 0,
+                createdAt: serverTimestamp()
+            });
+            showToast(`Saved to "${category}"`);
+        } catch (e) {
+            console.error(e);
+            showToast("Error saving");
+        }
+    };
 
     window.updateItem = (sId, iId, field, val) => {
         // Safety check
@@ -1998,21 +2097,8 @@ window.createNewInvoice = async () => {
             
             renderBuilder(); 
             triggerAutoSave(); 
-
-            // 2. FEATURE: Check Library if Description changed
-            if (field === 'desc' && val && val.trim().length > 2) {
-                // Check if exists in library (case-insensitive)
-                const exists = libraryItems.some(lib => lib.desc.trim().toLowerCase() === val.trim().toLowerCase());
-                
-                if (!exists) {
-                    // Small delay to allow the UI to finish rendering before alert blocks it
-                    setTimeout(() => {
-                        if (confirm(`"${val}" is not in your Library.\n\nSave it now for future use?`)) {
-                            window.quickSaveToLibrary(val, item.unit, item.price);
-                        }
-                    }, 100);
-                }
-            }
+            
+            // OLD AUTOMATIC POPUP REMOVED
         }
     };
 
