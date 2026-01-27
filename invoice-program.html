@@ -1337,11 +1337,21 @@
         const uid = dataUid();
         if (!uid) return;
         if (!confirm('Delete this customer?')) return;
+        
+        // 1. Update UI Instantly
+        const originalList = [...customers]; // backup in case of error
+        customers = customers.filter(c => c.id !== id);
+        renderCustomerList();
+
+        // 2. Delete from Cloud
         try {
             await deleteDoc(doc(db, `users/${uid}/customers`, id));
             showToast('Deleted');
         } catch (e) {
             console.error(e);
+            // Revert if failed
+            customers = originalList; 
+            renderCustomerList();
             showToast('Delete failed (check permissions)');
         }
     };
@@ -1598,7 +1608,18 @@ window.createNewInvoice = async () => {
 
     window.deleteInvoice = async (id) => {
         if(confirm("Delete this invoice?")) {
-            await deleteDoc(doc(db, `users/${dataUid()}/invoices`, id));
+            // 1. Update UI Instantly
+            invoices = invoices.filter(inv => inv.id !== id);
+            renderInvoiceList();
+            
+            // 2. Delete from Cloud in background
+            try {
+                await deleteDoc(doc(db, `users/${dataUid()}/invoices`, id));
+                showToast("Invoice deleted");
+            } catch (e) {
+                console.error(e);
+                showToast("Error deleting invoice");
+            }
         }
     };
 
@@ -1862,7 +1883,21 @@ window.createNewInvoice = async () => {
 
     window.deleteLibItem = async (id) => {
         if(confirm("Delete this library item?")) {
-            await deleteDoc(doc(db, `users/${dataUid()}/libraryItems`, id));
+            // 1. Update UI Instantly
+            const originalList = [...libraryItems];
+            libraryItems = libraryItems.filter(i => i.id !== id);
+            renderLibraryDashboard();
+
+            // 2. Delete from Cloud
+            try {
+                await deleteDoc(doc(db, `users/${dataUid()}/libraryItems`, id));
+                showToast("Item deleted");
+            } catch(e) {
+                console.error(e);
+                libraryItems = originalList;
+                renderLibraryDashboard();
+                showToast("Delete failed");
+            }
         }
     };
 
