@@ -911,6 +911,7 @@
     let customerInvoicesCache = {};
     let viewingCustomerId = null;
     let editingLibItemId = null;
+    let globalTerms = ""; // <--- NEW VARIABLE
 
     // --- PERF / VIEW STATE ---
     let currentView = 'dashboard';
@@ -1041,6 +1042,14 @@
             if (currentView === 'customers') renderCustomerList();
         }, handleFsError);
         unsubscribers.push(unsubCust);
+
+        // --- FIX: Load Global Settings ---
+        try {
+            const settingsSnap = await getDoc(doc(db, `users/${uid}/profile/settings`));
+            if (settingsSnap.exists() && settingsSnap.data().defaultTerms) {
+                globalTerms = settingsSnap.data().defaultTerms;
+            }
+        } catch (e) { console.log("Settings load error", e); }
     }
     // --- INVOICE PAGINATION & LOADING ---
     window.refreshInvoices = async () => {
@@ -1558,7 +1567,7 @@ window.createNewInvoice = async () => {
             sections: [{ id: Date.now(), title: "General Works", items: [] }],
             paymentStatus: 'unpaid',
             amountPaid: 0,
-            termsOverride: '',
+            termsOverride: globalTerms, // <--- Auto-fill with saved default
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
         };
@@ -1992,7 +2001,10 @@ window.createNewInvoice = async () => {
     };
     window.saveSettings = async () => {
         const val = document.getElementById('setting-default-terms').value;
+        // Update Cloud
         await setDoc(doc(db, `users/${dataUid()}/profile/settings`), { defaultTerms: val }, { merge: true });
+        // Update Local Memory immediately
+        globalTerms = val; 
         showToast("Settings Saved");
         document.getElementById('settingsModal').classList.remove('active');
     };
@@ -2035,6 +2047,7 @@ window.createNewInvoice = async () => {
     window.generatePDF = (invOverride = null) => {
                 const inv = invOverride || currentInvoice;
         if(!inv) return;
+        const logoBase64 = "data:image/png;base64,PASTE_YOUR_HUGE_BASE64_STRING_HERE";
         const btn = document.getElementById('btn-generate');
         const originalText = btn ? btn.innerHTML : null;
         if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
@@ -2091,7 +2104,8 @@ window.createNewInvoice = async () => {
         });
 
         // Terms
-        const termsText = inv.termsOverride || "This quotation is valid for 30 days.\nPayment terms: 50% Deposit, 40% Progress, 10% Completion.\nGoods sold are not refundable.";
+        // Priority: 1. Specific Invoice Box, 2. Global Saved Settings, 3. Hardcoded Fallback
+        const termsText = inv.termsOverride || globalTerms || "This quotation is valid for 30 days.\nPayment terms: 50% Deposit, 40% Progress, 10% Completion.\nGoods sold are not refundable.";
 
         const docDefinition = {
             pageSize: 'A4',
