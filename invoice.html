@@ -48,6 +48,9 @@
             height: 100vh;
             display: flex;
             flex-direction: column;
+            overflow-x: hidden;
+            /* Fix horizontal overflow */
+            width: 100%;
         }
 
         /* --- UTILS --- */
@@ -266,9 +269,31 @@
 
             /* Ensure toast doesn't get hidden by keyboard on mobile */
             .toast {
-                bottom: 20px;
+                bottom: 30px;
                 width: 90%;
                 text-align: center;
+                padding: 14px 20px;
+                font-size: 0.95rem;
+                border-radius: 12px;
+            }
+
+            /* Better mobile spacing */
+            .app-header {
+                padding: 10px 16px;
+            }
+
+            .main-container {
+                padding: 0 12px;
+                margin: 16px auto;
+            }
+
+            .card {
+                padding: 16px;
+                border-radius: 12px;
+            }
+
+            h2 {
+                font-size: 1.25rem;
             }
         }
 
@@ -288,15 +313,19 @@
 
         /* --- HEADER --- */
         .app-header {
-            background: var(--bg-card);
-            border-bottom: 1px solid var(--border);
-            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+            padding: 12px 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            height: 60px;
+            height: 70px;
             flex-shrink: 0;
             z-index: 50;
+            position: sticky;
+            top: 0;
         }
 
         .brand-logo {
@@ -427,7 +456,7 @@
         #editor-view {
             flex: 1;
             overflow-y: auto;
-            padding-bottom: 140px;
+            padding-bottom: 250px;
             /* Increased to avoid footer blocking content */
         }
 
@@ -440,11 +469,16 @@
         /* Reuse existing card styles */
         .card {
             background: var(--bg-card);
-            border-radius: 12px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            border: 1px solid var(--border);
-            padding: 20px;
-            margin-bottom: 20px;
+            border-radius: 16px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            padding: 24px;
+            margin-bottom: 24px;
+            transition: box-shadow 0.2s;
+        }
+
+        .card:hover {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
         }
 
         .card-header {
@@ -590,18 +624,23 @@
 
         /* Buttons */
         .btn-primary {
-            background: var(--primary);
+            background: linear-gradient(135deg, var(--primary) 0%, #1e293b 100%);
             color: white;
             border: none;
-            padding: 10px 20px;
+            padding: 12px 24px;
             border-radius: 8px;
             font-weight: 600;
             cursor: pointer;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
+            transition: transform 0.1s, box-shadow 0.2s;
+            box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.1), 0 2px 4px -1px rgba(15, 23, 42, 0.06);
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            transition: background 0.2s;
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
         }
 
         .btn-primary:hover {
@@ -1049,9 +1088,14 @@
 
             #dashboard-view,
             #customers-view,
-            #library-view,
+            #library-view {
+                padding: 14px;
+            }
+
             #editor-view {
                 padding: 14px;
+                padding-bottom: 300px !important;
+                /* Force override for mobile footer */
             }
 
             /* Footer bar on small screens */
@@ -1490,8 +1534,10 @@
 
     <div id="app-container" class="hidden" style="flex:1; display:flex; flex-direction:column;">
         <header class="app-header">
-            <div class="brand-logo" onclick="switchView('dashboard')"><i class="fas fa-layer-group"></i> Renobros
-                Interior<span> Pte Ltd</span></div>
+            <div class="brand-logo" onclick="switchView('dashboard')">
+                <img src="https://renobrosinterior.com/wp-content/uploads/2025/12/Renobros-Logo.png" alt="Renobros"
+                    style="height: 48px; object-fit: contain;">
+            </div>
             <div class="nav-links">
                 <a class="nav-link active" id="nav-dashboard" onclick="switchView('dashboard')">Invoices</a>
                 <a class="nav-link" id="nav-editor" onclick="switchView('editor')">Editor</a>
@@ -1509,8 +1555,10 @@
         <div id="mobile-nav-overlay" class="mobile-nav-overlay hidden" onclick="closeMobileNav(event)">
             <div class="mobile-nav-panel" onclick="event.stopPropagation()">
                 <div class="mobile-nav-header">
-                    <div class="brand-logo" style="cursor:default;"><i class="fas fa-layer-group"></i> Renobros
-                        Interior<span> Pte Ltd</span></div>
+                    <div class="brand-logo" style="cursor:default;">
+                        <img src="https://renobrosinterior.com/wp-content/uploads/2025/12/Renobros-Logo.png"
+                            alt="Renobros" style="height: 40px; object-fit: contain;">
+                    </div>
                     <button class="btn-outline" style="padding:8px 10px;" onclick="closeMobileNav()"><i
                             class="fas fa-times"></i></button>
                 </div>
