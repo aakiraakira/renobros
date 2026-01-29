@@ -3001,9 +3001,15 @@
                 container.appendChild(sectionEl);
             });
 
+            const finalTotal = invoiceGrandTotal(currentInvoice);
             const amountPaid = currentInvoice.amountPaid || 0;
-            document.getElementById('ui-grand-total').textContent = `$${grandTotal.toFixed(2)}`;
-            document.getElementById('ui-balance').textContent = `Balance: $${(grandTotal - amountPaid).toFixed(2)}`;
+            // Balance logic: (Total - Paid)
+            // Consider payments array if used, using invoiceDueAmount helper which handles both legacy and new payments is safest for balance check,
+            // but for UI text we can calculate directly:
+            const due = invoiceDueAmount(currentInvoice);
+
+            document.getElementById('ui-grand-total').textContent = `$${finalTotal.toFixed(2)}`;
+            document.getElementById('ui-balance').textContent = `Balance: $${due.toFixed(2)}`;
             // Owner-only internal cost / profit
             const ownerBox = document.getElementById('owner-metrics');
             if (ownerBox) {
@@ -3746,6 +3752,15 @@
                     { text: 'DETAILED BREAKDOWN', style: 'subHeader', margin: [0, 0, 0, 15] },
                     { table: { widths: ['6%', '54%', '12%', '14%', '14%'], headerRows: 1, body: detailsBody }, layout: { hLineWidth: (i) => i < 2 ? 1 : 0, vLineWidth: () => 0, hLineColor: () => '#cbd5e1', paddingTop: () => 6, paddingBottom: () => 6 } },
                     { text: '', pageBreak: 'before' },
+                    // Payment Details
+                    { text: 'PAYMENT DETAILS', style: 'subHeader', margin: [0, 0, 0, 10] },
+                    {
+                        stack: [
+                            { text: [{ text: 'PayNow UEN: ', bold: true, color: '#0f172a' }, '201208928E888'] },
+                            { text: 'Please indicate Invoice Ref number in transfer remarks.', fontSize: 9, italic: true, color: '#64748b', margin: [0, 2, 0, 0] }
+                        ],
+                        margin: [0, 0, 0, 20]
+                    },
                     // Terms
                     { text: 'TERMS & CONDITIONS', style: 'subHeader', margin: [0, 0, 0, 10] },
                     { text: termsText, fontSize: 9, color: '#475569', margin: [0, 0, 0, 40] },
