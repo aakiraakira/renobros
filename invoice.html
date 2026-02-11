@@ -3123,9 +3123,14 @@
             const copy = JSON.parse(JSON.stringify(src));
             delete copy.id;
 
+            // Reset for new copy
             copy.quoteRef = copy.quoteRef + " (Copy)";
             copy.createdAt = serverTimestamp();
             copy.updatedAt = serverTimestamp();
+            copy.payments = [];
+            copy.amountPaid = 0;
+            copy.paymentStatus = 'unpaid';
+            delete copy.paidAt; // Remove paid date if exists
 
             try {
                 const ref = await addDoc(collection(db, `users/${dataUid()}/invoices`), copy);
@@ -3135,7 +3140,7 @@
                 invoices.unshift(localObj);
                 renderInvoiceList();
 
-                showToast("Invoice Duplicated");
+                showToast("Invoice Duplicated (Draft)");
             } catch (e) {
                 console.error("Duplicate failed", e);
                 showToast("Error duplicating invoice");
@@ -3361,7 +3366,7 @@
 
         window.createVO = async () => {
             const note = document.getElementById('voNote').value;
-            if (!note) return alert("Please add a note for this revision");
+            if (!note) { showToast("Please add a note for this revision"); return; }
 
             // Snapshot
             const snapshot = JSON.parse(JSON.stringify(currentInvoice));
@@ -3427,25 +3432,27 @@
             const method = document.getElementById('newPayMethod').value;
             const note = document.getElementById('newPayNote').value;
 
-            if (!date || !amt) return alert("Please enter Date and Amount");
+            if (!date || !amt) { showToast("Please enter Date and Amount"); return; }
 
             if (!currentInvoice.payments) currentInvoice.payments = [];
             const newPay = { id: Date.now(), date, amount: amt, method, note };
             currentInvoice.payments.push(newPay);
 
-            // Update legacy amountPaid for backward compat logic helper (invoiceDueAmount uses payments array primarily now)
-            // But for safety:
-            currentInvoice.amountPaid = (currentInvoice.amountPaid || 0) + amt;
+            // Ensure sync
+            recalculateAmountPaid(currentInvoice);
 
             // Auto update status?
             const due = invoiceDueAmount(currentInvoice);
-            // Note: invoiceDueAmount uses the NEW payments array, so it considers this new payment.
-            // If due <= 0, auto set to Paid?
+
             if (due <= 0) {
                 currentInvoice.paymentStatus = 'paid';
                 currentInvoice.paidAt = new Date().toISOString();
-            } else if (currentInvoice.paymentStatus === 'unpaid') {
+            } else if (currentInvoice.paymentStatus === 'unpaid' && currentInvoice.amountPaid > 0) {
                 currentInvoice.paymentStatus = 'partial';
+            } else if (currentInvoice.paymentStatus === 'paid' && due > 0) {
+                // Revert to partial if editing
+                currentInvoice.paymentStatus = 'partial';
+                currentInvoice.paidAt = null;
             }
 
             renderPaymentList();
@@ -3460,9 +3467,31 @@
         window.deletePayment = (pid) => {
             if (!confirm("Delete this payment?")) return;
             currentInvoice.payments = currentInvoice.payments.filter(p => String(p.id) !== String(pid));
+
+            recalculateAmountPaid(currentInvoice);
+
+            // Re-check status logic
+            const due = invoiceDueAmount(currentInvoice);
+            if (due > 0 && currentInvoice.paymentStatus === 'paid') {
+                currentInvoice.paymentStatus = 'partial';
+                currentInvoice.paidAt = null;
+            }
+            if (currentInvoice.amountPaid <= 0) {
+                currentInvoice.paymentStatus = 'unpaid';
+                currentInvoice.paidAt = null;
+            }
+
             renderPaymentList();
             renderBuilder();
             triggerAutoSave();
+        };
+
+        const recalculateAmountPaid = (inv) => {
+            if (inv.payments && inv.payments.length > 0) {
+                inv.amountPaid = inv.payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+            } else {
+                inv.amountPaid = 0;
+            }
         };
 
         window.saveItemToLibrary = (sId, iId) => {
@@ -4181,7 +4210,7 @@
             };
 
             try { pdfMake.createPdf(docDefinition).download(`${(inv.quoteRef || 'document')}.pdf`); }
-            catch (e) { console.error(e); alert("PDF Error"); }
+            catch (e) { console.error(e); showToast("PDF Error: " + e.message); }
             finally { if (btn) btn.innerHTML = originalText; }
         };
 
