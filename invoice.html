@@ -2492,6 +2492,23 @@
         };
 
         window.switchView = (view) => {
+            // 1. Force flush any pending save if leaving editor
+            if (currentView === 'editor' && saveTimeout) {
+                clearTimeout(saveTimeout);
+                saveTimeout = null;
+                // Execute the save logic immediately
+                if (currentInvoice) {
+                    const statusEl = document.getElementById('save-status');
+                    if (statusEl) statusEl.innerHTML = `<span class="status-pill status-unsaved"></span>Saving...`;
+                    const ref = doc(db, `users/${dataUid()}/invoices`, currentInvoice.id);
+                    const toSave = { ...currentInvoice, updatedAt: serverTimestamp() };
+                    delete toSave.id;
+                    updateDoc(ref, toSave).then(() => {
+                        if (statusEl) statusEl.innerHTML = `<span class="status-pill status-saved"></span>Saved`;
+                    }).catch(err => console.error("Flush save failed", err));
+                }
+            }
+
             currentView = view;
             try { closeMobileNav(); } catch (_) { }
             const views = ['dashboard', 'editor', 'customers', 'library'];
@@ -2508,7 +2525,10 @@
             if (nav) nav.classList.add('active');
 
             // Render on entry
-            if (view === 'dashboard') renderInvoiceList();
+            if (view === 'dashboard') {
+                // Ensure list is fresh, especially returning from editor
+                renderInvoiceList();
+            }
             if (view === 'customers') renderCustomerList();
             if (view === 'library') renderLibraryDashboard();
         };
@@ -2951,36 +2971,42 @@
         };
 
         window.createNewInvoice = async () => {
-            // Default to Quotation
-            const docType = 'Quotation';
-            const newRef = await getNextRef(docType);
+            try {
+                // Default to Quotation
+                const docType = 'Quotation';
+                const newRef = await getNextRef(docType);
 
-            const newInv = {
-                docType: docType,
-                quoteRef: newRef,
-                quoteDate: new Date().toISOString().split('T')[0],
-                clientName: '',
-                customerId: '',
-                address: '',
-                projectTitle: 'PROPOSED RENOVATION WORKS',
-                sections: [{ id: Date.now(), title: "General Works", items: [] }],
-                paymentStatus: 'unpaid',
-                // Financials
-                discount: { type: 'fixed', value: 0 },
-                gstEnabled: false,
-                gstRate: 9,
-                payments: [], // New payment tracking
-                amountPaid: 0, // Legacy fallback
-                termsOverride: globalTerms,
-                createdAt: serverTimestamp(),
-                updatedAt: serverTimestamp()
-            };
-            const ref = await addDoc(collection(db, `users/${dataUid()}/invoices`), newInv);
+                const newInv = {
+                    docType: docType,
+                    quoteRef: newRef,
+                    quoteDate: new Date().toISOString().split('T')[0],
+                    clientName: '',
+                    customerId: '',
+                    address: '',
+                    projectTitle: 'PROPOSED RENOVATION WORKS',
+                    sections: [{ id: Date.now(), title: "General Works", items: [] }],
+                    paymentStatus: 'unpaid',
+                    // Financials
+                    discount: { type: 'fixed', value: 0 },
+                    gstEnabled: false,
+                    gstRate: 9,
+                    payments: [], // New payment tracking
+                    amountPaid: 0, // Legacy fallback
+                    termsOverride: globalTerms,
+                    createdAt: serverTimestamp(),
+                    updatedAt: serverTimestamp()
+                };
+                const ref = await addDoc(collection(db, `users/${dataUid()}/invoices`), newInv);
 
-            // Fix: Update local array immediately so it appears in the list
-            invoices.unshift({ id: ref.id, ...newInv });
+                // Fix: Update local array immediately so it appears in the list
+                const localObj = { id: ref.id, ...newInv };
+                invoices.unshift(localObj);
 
-            await loadInvoice(ref.id);
+                await loadInvoice(ref.id);
+            } catch (e) {
+                console.error("Creation Error", e);
+                showToast("Error creating invoice: " + e.message);
+            }
         };
 
         window.loadInvoice = async (id) => {
@@ -3071,10 +3097,6 @@
                 document.getElementById('gstStatusText').innerText = gstOn ? "Enabled (9%)" : "Disabled";
             }
 
-            const gstOn = !!currentInvoice.gstEnabled;
-            document.getElementById('gstToggle').checked = gstOn;
-            document.getElementById('gstStatusText').innerText = gstOn ? "Enabled (9%)" : "Disabled";
-
             // Payments Migration (in-memory)
             if ((!currentInvoice.payments || currentInvoice.payments.length === 0) && currentInvoice.amountPaid > 0) {
                 currentInvoice.payments = [{
@@ -3089,19 +3111,35 @@
 
             renderBuilder();
             renderPaymentList();
-            switchView('editor');
+            // Dont switch view in loadInvoice usually unless explicit, but here it often is called from list.
+            // Caller usually does switchView.
         };
 
         window.duplicateInvoice = async (id) => {
             const src = invoices.find(i => String(i.id) === String(id));
             if (!src) return;
-            const copy = { ...src };
+
+            // Deep copy to avoid reference issues
+            const copy = JSON.parse(JSON.stringify(src));
             delete copy.id;
+
             copy.quoteRef = copy.quoteRef + " (Copy)";
             copy.createdAt = serverTimestamp();
             copy.updatedAt = serverTimestamp();
-            await addDoc(collection(db, `users/${dataUid()}/invoices`), copy);
-            showToast("Invoice Duplicated");
+
+            try {
+                const ref = await addDoc(collection(db, `users/${dataUid()}/invoices`), copy);
+
+                // Add to local list and render
+                const localObj = { id: ref.id, ...copy };
+                invoices.unshift(localObj);
+                renderInvoiceList();
+
+                showToast("Invoice Duplicated");
+            } catch (e) {
+                console.error("Duplicate failed", e);
+                showToast("Error duplicating invoice");
+            }
         };
 
         window.deleteInvoice = async (id) => {
@@ -3260,6 +3298,25 @@
                 }
             }
 
+            triggerAutoSave();
+        };
+
+        window.updateDiscount = () => {
+            if (!currentInvoice) return;
+            const type = document.getElementById('discountType').value;
+            const val = parseFloat(document.getElementById('discountValue').value) || 0;
+            currentInvoice.discount = { type, value: val };
+            renderBuilder();
+            triggerAutoSave();
+        };
+
+        window.updateGST = () => {
+            if (!currentInvoice) return;
+            const enabled = document.getElementById('gstToggle').checked;
+            currentInvoice.gstEnabled = enabled;
+            currentInvoice.gstRate = 9; // Fixed for now
+            document.getElementById('gstStatusText').innerText = enabled ? "Enabled (9%)" : "Disabled";
+            renderBuilder();
             triggerAutoSave();
         };
 
