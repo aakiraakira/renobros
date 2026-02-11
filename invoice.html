@@ -2567,7 +2567,7 @@
                 <td data-label="Total" class="font-bold">$${total.toFixed(2)}</td>
                 <td data-label="Due" style="color:${due > 0 ? 'var(--danger)' : 'var(--success)'}">$${due.toFixed(2)}</td>
                 <td class="text-right actions-cell" data-label="Actions">
-                    <button class="action-btn" onclick="loadInvoice('${inv.id}')"><i class="fas fa-edit"></i></button>
+                    <button class="action-btn" onclick="loadInvoice('${inv.id}'); switchView('editor')"><i class="fas fa-edit"></i></button>
                     <button class="action-btn" onclick="quickDownloadPDF('${inv.id}')"><i class="fas fa-file-pdf"></i></button>
                     <button class="action-btn" onclick="duplicateInvoice('${inv.id}')"><i class="fas fa-copy"></i></button>
                     <button class="action-btn delete" onclick="deleteInvoice('${inv.id}')"><i class="fas fa-trash"></i></button>
@@ -3003,6 +3003,7 @@
                 invoices.unshift(localObj);
 
                 await loadInvoice(ref.id);
+                switchView('editor');
             } catch (e) {
                 console.error("Creation Error", e);
                 showToast("Error creating invoice: " + e.message);
