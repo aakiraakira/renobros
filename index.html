@@ -3266,6 +3266,10 @@
                         <span style="font-weight:700; color:var(--text-muted);">${String.fromCharCode(65 + sIndex)}.</span>
                         <input type="text" class="section-title-input" value="${section.title}" onchange="updateSectionTitle(${section.id}, this.value)">
                     </div>
+                    <div style="display:flex; align-items:center; gap:5px; margin-right:15px;">
+                        <button class="btn-icon-danger" style="color:var(--text-muted)" title="Move Section Up" onclick="moveSectionUp(${section.id})"><i class="fas fa-arrow-up"></i></button>
+                        <button class="btn-icon-danger" style="color:var(--text-muted)" title="Move Section Down" onclick="moveSectionDown(${section.id})"><i class="fas fa-arrow-down"></i></button>
+                    </div>
                     <div class="section-total">$${sectionTotal.toFixed(2)}</div>
                 </div>
                 <div class="items-container">
@@ -3274,6 +3278,8 @@
                             <div class="item-top">
                                 <textarea class="item-desc" rows="1" onchange="updateItem(${section.id}, ${item.id}, 'desc', this.value)">${item.desc}</textarea>
                                 <div class="flex gap-1">
+                                    <button class="btn-icon-danger" style="color:var(--text-muted)" title="Move Item Up" onclick="moveItemUp(${section.id}, ${item.id})"><i class="fas fa-arrow-up"></i></button>
+                                    <button class="btn-icon-danger" style="color:var(--text-muted)" title="Move Item Down" onclick="moveItemDown(${section.id}, ${item.id})"><i class="fas fa-arrow-down"></i></button>
                                     <button class="btn-icon-danger" style="color:var(--accent)" title="Save to Library" onclick="saveItemToLibrary(${section.id}, ${item.id})"><i class="fas fa-save"></i></button>
                                     <button class="btn-icon-danger" onclick="deleteItem(${section.id}, ${item.id})"><i class="fas fa-trash"></i></button>
                                 </div>
@@ -3398,6 +3404,54 @@
                 item[field] = (field === 'qty' || field === 'price') ? parseFloat(val) || 0 : val;
                 renderBuilder();
                 triggerAutoSave();
+            }
+        };
+
+        window.moveItemUp = (sId, iId) => {
+            const s = currentInvoice.sections.find(x => x.id === sId);
+            if (!s) return;
+            const index = s.items.findIndex(x => x.id === iId);
+            if (index > 0) {
+                const temp = s.items[index - 1];
+                s.items[index - 1] = s.items[index];
+                s.items[index] = temp;
+                renderBuilder(); triggerAutoSave();
+            }
+        };
+
+        window.moveItemDown = (sId, iId) => {
+            const s = currentInvoice.sections.find(x => x.id === sId);
+            if (!s) return;
+            const index = s.items.findIndex(x => x.id === iId);
+            if (index > -1 && index < s.items.length - 1) {
+                const temp = s.items[index + 1];
+                s.items[index + 1] = s.items[index];
+                s.items[index] = temp;
+                renderBuilder(); triggerAutoSave();
+            }
+        };
+
+        window.moveSectionUp = (sId) => {
+            if (!currentInvoice || !currentInvoice.sections) return;
+            const sections = currentInvoice.sections;
+            const index = sections.findIndex(x => x.id === sId);
+            if (index > 0) {
+                const temp = sections[index - 1];
+                sections[index - 1] = sections[index];
+                sections[index] = temp;
+                renderBuilder(); triggerAutoSave();
+            }
+        };
+
+        window.moveSectionDown = (sId) => {
+            if (!currentInvoice || !currentInvoice.sections) return;
+            const sections = currentInvoice.sections;
+            const index = sections.findIndex(x => x.id === sId);
+            if (index > -1 && index < sections.length - 1) {
+                const temp = sections[index + 1];
+                sections[index + 1] = sections[index];
+                sections[index] = temp;
+                renderBuilder(); triggerAutoSave();
             }
         };
 
