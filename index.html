@@ -2078,10 +2078,14 @@
                         <label>Address</label>
                         <input type="text" id="cust-address" class="input-control" placeholder="Address">
                     </div>
+                    <div class="input-group" style="grid-column: span 2;">
+                        <label>Notes</label>
+                        <textarea id="cust-notes" class="input-control" rows="3" placeholder="Optional notes..."></textarea>
+                    </div>
                 </div>
                 <div class="flex gap-2" style="justify-content:flex-end;">
                     <button class="btn-outline" onclick="closeCustomerEditor()" style="flex:1;">Cancel</button>
-                    <button class="btn-accent" onclick="saveCustomerEdit()" style="flex:1;">Save Customer</button>
+                    <button class="btn-accent" onclick="saveCustomer()" style="flex:1;">Save Customer</button>
                 </div>
             </div>
         </div>
@@ -2143,18 +2147,6 @@
                 </div>
             </div>
         </div>
-    </div>
-    <div class="input-group" style="grid-column: span 2;">
-        <label>Notes</label>
-        <textarea id="cust-notes" class="input-control" rows="3" placeholder="Optional notes..."></textarea>
-    </div>
-    </div>
-    <div class="flex" style="justify-content:flex-end; gap:10px;">
-        <button class="btn-outline" onclick="closeCustomerEditor()">Cancel</button>
-        <button class="btn-primary" onclick="saveCustomer()"><i class="fas fa-save"></i> Save</button>
-    </div>
-    </div>
-    </div>
     </div>
 
     <!-- Customer Detail Modal -->
@@ -2591,15 +2583,10 @@
                 if (currentInvoice) {
                     const statusEl = document.getElementById('save-status');
                     if (statusEl) statusEl.innerHTML = `<span class="status-pill status-unsaved"></span>Saving...`;
-                    const ref = doc(db, `users/${dataUid()}/invoices`, currentInvoice.id);
-                    const toSave = { ...currentInvoice, updatedAt: serverTimestamp() };
-                    delete toSave._needsMigrationSave;
-                    delete toSave._legacyVOsChecked;
-                    delete toSave.id;
-                    syncCurrentInvoiceCache();
-                    updateDoc(ref, toSave).then(() => {
-                        if (statusEl) statusEl.innerHTML = `<span class="status-pill status-saved"></span>Saved`;
-                    }).catch(err => console.error("Flush save failed", err));
+                    persistCurrentInvoice(statusEl).catch(err => {
+                        console.error("Flush save failed", err);
+                        if (statusEl) statusEl.innerHTML = `<span class="status-pill status-unsaved"></span>Save failed`;
+                    });
                 }
             }
 
@@ -2787,6 +2774,17 @@
             voNumberCurrent: vo.voNumber,
             projectTitle: `${inv.projectTitle || 'PROPOSED RENOVATION WORKS'} - VARIATION ORDER`
         });
+        const normalizeCustomerName = (name = '') => name.trim().replace(/\s+/g, ' ').toLowerCase();
+        const upsertLocalCustomer = (customer) => {
+            if (!customer?.id) return;
+            const existingIndex = customers.findIndex(c => String(c.id) === String(customer.id));
+            if (existingIndex > -1) {
+                customers[existingIndex] = { ...customers[existingIndex], ...customer };
+            } else {
+                customers.unshift(customer);
+            }
+            if (currentView === 'customers') renderCustomerList();
+        };
         const syncCurrentInvoiceCache = () => {
             if (!currentInvoice || !currentInvoice.id) return;
             const index = invoices.findIndex(inv => String(inv.id) === String(currentInvoice.id));
@@ -2794,7 +2792,85 @@
             const cached = { ...currentInvoice };
             delete cached._needsMigrationSave;
             delete cached._legacyVOsChecked;
+            delete cached._customerSyncPromise;
+            delete cached._customerSyncKey;
             invoices[index] = cached;
+        };
+        const ensureInvoiceCustomerLink = async (inv = currentInvoice) => {
+            const uid = dataUid();
+            const normalizedName = normalizeCustomerName(inv?.clientName || '');
+            if (!uid || !inv || !inv.id || !normalizedName || inv.customerId) return false;
+
+            const syncKey = `${inv.id}:${normalizedName}`;
+            if (inv._customerSyncPromise && inv._customerSyncKey === syncKey) {
+                return inv._customerSyncPromise;
+            }
+
+            inv._customerSyncKey = syncKey;
+            inv._customerSyncPromise = (async () => {
+                try {
+                    let existing = customers.find(c => normalizeCustomerName(c.name || '') === normalizedName);
+                    if (!existing && customers.length === 0) {
+                        const snap = await getDocs(collection(db, `users/${uid}/customers`));
+                        const hydratedCustomers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                        if (hydratedCustomers.length > 0) {
+                            customers = hydratedCustomers;
+                            if (currentView === 'customers') renderCustomerList();
+                            existing = customers.find(c => normalizeCustomerName(c.name || '') === normalizedName);
+                        }
+                    }
+                    if (existing?.id) {
+                        inv.customerId = existing.id;
+                        syncCurrentInvoiceCache();
+                        return true;
+                    }
+
+                    const payload = {
+                        name: (inv.clientName || '').trim(),
+                        phone: '',
+                        email: '',
+                        address: (inv.address || '').trim(),
+                        notes: '',
+                        createdAt: serverTimestamp(),
+                        updatedAt: serverTimestamp()
+                    };
+                    const ref = await addDoc(collection(db, `users/${uid}/customers`), payload);
+                    upsertLocalCustomer({
+                        id: ref.id,
+                        name: payload.name,
+                        phone: payload.phone,
+                        email: payload.email,
+                        address: payload.address,
+                        notes: payload.notes
+                    });
+                    inv.customerId = ref.id;
+                    syncCurrentInvoiceCache();
+                    return true;
+                } catch (e) {
+                    console.error("Customer auto-sync failed", e);
+                    showToast("Customer auto-sync failed");
+                    return false;
+                } finally {
+                    delete inv._customerSyncPromise;
+                    delete inv._customerSyncKey;
+                }
+            })();
+
+            return inv._customerSyncPromise;
+        };
+        const persistCurrentInvoice = async (statusEl = null) => {
+            if (!currentInvoice) return;
+            await ensureInvoiceCustomerLink(currentInvoice);
+            const ref = doc(db, `users/${dataUid()}/invoices`, currentInvoice.id);
+            const toSave = { ...currentInvoice, updatedAt: serverTimestamp() };
+            delete toSave._needsMigrationSave;
+            delete toSave._legacyVOsChecked;
+            delete toSave._customerSyncPromise;
+            delete toSave._customerSyncKey;
+            delete toSave.id;
+            syncCurrentInvoiceCache();
+            await updateDoc(ref, toSave);
+            if (statusEl) statusEl.innerHTML = `<span class="status-pill status-saved"></span>Saved`;
         };
 
         const invoiceGrandTotal = (inv) => {
@@ -2922,9 +2998,18 @@
             try {
                 if (editingCustomerId) {
                     await updateDoc(doc(db, `users/${uid}/customers`, editingCustomerId), payload);
+                    upsertLocalCustomer({ id: editingCustomerId, ...payload });
                 } else {
                     payload.createdAt = serverTimestamp();
-                    await addDoc(collection(db, `users/${uid}/customers`), payload);
+                    const ref = await addDoc(collection(db, `users/${uid}/customers`), payload);
+                    upsertLocalCustomer({
+                        id: ref.id,
+                        name: payload.name,
+                        phone: payload.phone,
+                        email: payload.email,
+                        address: payload.address,
+                        notes: payload.notes
+                    });
                 }
                 showToast('Saved');
                 closeCustomerEditor();
@@ -4145,33 +4230,10 @@
                 </div>`;
             });
             container.innerHTML = html;
+
             return;
-
-            try {
-                const revRef = collection(db, `users/${dataUid()}/invoices/${currentInvoice.id}/revisions`);
-                const q = query(revRef, orderBy('createdAt', 'desc'));
-                const snap = await getDocs(q);
-
-                if (snap.empty) {
-                    container.innerHTML = '<div style="padding:10px; color:var(--text-muted); text-align:center; font-style:italic; font-size:0.85rem;">No revisions saved yet</div>';
-                    return;
-                }
-
-                let html = '<div style="font-size:0.85rem; font-weight:600; margin-bottom:10px; color:var(--text-muted);">Saved Revisions</div>';
-                snap.forEach(doc => {
-                    const data = doc.data();
-                    const date = data.createdAt && data.createdAt.toDate ? data.createdAt.toDate().toLocaleString() : 'Just now';
-
-                    const safeKey = `vosnap_${doc.id}`;
-                    window[safeKey] = data.snapshot;
-
-                    // If it belongs to old data models, just default to passing it 
-                    // But standard generatePDF handles it normally
-
-                    html += `
-                    <div style="display:flex; justify-content:space-between; align-items:center; padding:10px; border-bottom:1px solid var(--border); background:#f8fafc; border-radius:6px; margin-bottom:5px;">
-                        <div>
-                            <div style="font-weight:600; font-size:0.9rem;">VO #${data.voNumber}</div>
+        };
+        /*
                             <div class="text-xs text-muted">${date} • ${data.note}</div>
                         </div>
                         <div class="flex gap-2">
@@ -4187,24 +4249,7 @@
                 console.error("Error loading VOs", e);
                 container.innerHTML = '<div style="color:var(--danger); font-size:0.85rem;">Error loading revisions</div>';
             }
-        };
-
-        // --- NEW FINANCIAL HANDLERS ---
-        window.updateDiscount = () => {
-            const type = document.getElementById('discountType').value;
-            const val = parseFloat(document.getElementById('discountValue').value) || 0;
-            currentInvoice.discount = { type, value: val };
-            renderBuilder(); triggerAutoSave();
-        };
-
-        window.updateGST = () => {
-            const on = document.getElementById('gstToggle').checked;
-            currentInvoice.gstEnabled = on;
-            currentInvoice.gstRate = 9; // Hardcoded for now, or from settings
-            document.getElementById('gstStatusText').innerText = on ? "Enabled (9%)" : "Disabled";
-            renderBuilder(); triggerAutoSave();
-        };
-
+            */
         window.renderPaymentList = () => {
             const container = document.getElementById('payment-list-container');
             if (!container) return;
@@ -4442,15 +4487,8 @@
             if (saveTimeout) clearTimeout(saveTimeout);
             saveTimeout = setTimeout(async () => {
                 if (!currentInvoice) return;
-                const ref = doc(db, `users/${dataUid()}/invoices`, currentInvoice.id);
-                const toSave = { ...currentInvoice, updatedAt: serverTimestamp() };
-                delete toSave._needsMigrationSave;
-                delete toSave._legacyVOsChecked;
-                delete toSave.id; // Don't save ID inside doc
                 try {
-                    syncCurrentInvoiceCache();
-                    await updateDoc(ref, toSave);
-                    if (statusEl) statusEl.innerHTML = `<span class="status-pill status-saved"></span>Saved`;
+                    await persistCurrentInvoice(statusEl);
                 } catch (e) {
                     console.error(e);
                     if (statusEl) statusEl.innerHTML = `<span class="status-pill status-unsaved"></span>Save failed`;
@@ -4620,26 +4658,6 @@
             document.getElementById('new-lib-desc').value = '';
             document.getElementById('new-lib-price').value = '';
             showToast("Item added to Library");
-        };
-
-        window.deleteLibItem = async (id) => {
-            if (confirm("Delete this library item?")) {
-                // 1. Update UI Instantly
-                const originalList = [...libraryItems];
-                libraryItems = libraryItems.filter(i => i.id !== id);
-                renderLibraryDashboard();
-
-                // 2. Delete from Cloud
-                try {
-                    await deleteDoc(doc(db, `users/${dataUid()}/libraryItems`, id));
-                    showToast("Item deleted");
-                } catch (e) {
-                    console.error(e);
-                    libraryItems = originalList;
-                    renderLibraryDashboard();
-                    showToast("Delete failed");
-                }
-            }
         };
 
         window.promptAddCategory = () => {
